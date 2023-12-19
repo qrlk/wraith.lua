@@ -444,7 +444,7 @@ local welcomeMessage = imgui.ImBool(cfg.options.welcomeMessage)
 
 --
 local DEBUG = imgui.ImBool(cfg.options.debug)
-local DEBUG_NEED_DRAW_ANGLES = true
+local DEBUG_NEED_DRAW_ANGLES = false
 
 local DEBUG_NEED_AIMLINES = imgui.ImBool(cfg.options.debugNeedAimLines)
 local DEBUG_NEED_AIMLINES_FULL = imgui.ImBool(cfg.options.debugNeedAimLinesFull)
