@@ -1,0 +1,6 @@
+{
+  "latest": "20.12.2023-dev1",
+  "updateurl": "https://raw.githubusercontent.com/qrlk/wraith.lua/master/wraith.lua",
+  "changelog": "https://github.com/qrlk/wraith/releases",
+  "telemetry": "http://qrlk.me/dev/moonloader/wraith/stats.php"
+}
