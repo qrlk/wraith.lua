@@ -437,8 +437,8 @@ end
 
 saveCfg()
 
--- local main_window_state = imgui.ImBool(false)
-local main_window_state = imgui.ImBool(true)
+local main_window_state = imgui.ImBool(false)
+-- local main_window_state = imgui.ImBool(true)
 
 local welcomeMessage = imgui.ImBool(cfg.options.welcomeMessage)
 
@@ -885,7 +885,6 @@ function main()
         if TACTICAL_ENABLE.v and ((isKeyDown(0xA4) or not TACTICAL_LMENU.v) and wasKeyPressed(cfg.tactical.key)) then
             if not sampIsChatInputActive() and not isSampfuncsConsoleActive() and not sampIsDialogActive() then
                 if isCharOnFoot(playerPed) and not isCharDead(playerPed) then
-                    -- todo remove
                     if os.clock() - TACTICAL_COOLDOWN.v > wraith_tactical_lastused then
                         table.insert(tempThreads, lua_thread.create(function()
 
@@ -1332,7 +1331,7 @@ function imgui.OnDrawFrame()
         if PASSIVE_ENABLE.v then
             createImguiCheckbox(PASSIVE_TRACER, 'passive', 'showTempTracer', 'settingPassiveTracer',
                 'tooltipSettingPassiveTracer')
-            createImguiCheckbox(PASSIVE_STRING, 'passive',t'printStyledString', 'settingPassiveString',
+            createImguiCheckbox(PASSIVE_STRING, 'passive', 'printStyledString', 'settingPassiveString',
                 'tooltipSettingPassiveString')
 
             imgui.PushItemWidth(200)
