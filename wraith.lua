@@ -5,7 +5,7 @@ script_author("qrlk")
 script_description("wraith passive + tactical")
 -- made for https://www.blast.hk/threads/193650/
 script_url("https://github.com/qrlk/wraith.lua")
-script_version("20.12.2023-rc1")
+script_version("20.12.2023-rc2")
 
 -- https://github.com/qrlk/qrlk.lua.moonloader
 local enable_sentry = true -- false to disable error reports to sentry.io
@@ -490,7 +490,7 @@ local cfg = inicfg.load({
         debugNeedAimLineLOS = true,
         debugNeedToDrawAngles = false,
         debugNeedToTweakAngles = false,
-        debugNeedToSaveAngles = false,
+        debugNeedToSaveAngles = false
     },
     audio = {
         language = "ru",
@@ -856,7 +856,6 @@ function getRandomSoundName()
     return random
 end
 local CURRENT_RANDOM_SOUND = getRandomSoundName()
-
 
 function playMainSoundNow(path)
     stopMainSoundNow()
@@ -1318,14 +1317,16 @@ function sampev.onAimSync(playerId, data)
                 realAspectHit = hit,
                 realAspect = realAspect,
                 weapon = getCurrentCharWeapon(char)
-            } 
+            }
 
             if DEBUG.v and (DEBUG_NEED_AIMLINES.v or DEBUG_NEED_3DTEXT.v) then
                 playersAimData[nick] = playerAimData
             end
 
-            --TODO 27 when cant see ped?
-            if (data.camMode ~= 4 and (readMemory(getCharPointer(char) + 0x528, 1, false) == 19 or readMemory(getCharPointer(char) + 0x528, 1, false) == 27)) or data.camMode == 55 then
+            -- TODO 27 when cant see ped?
+            if (data.camMode ~= 4 and
+                (readMemory(getCharPointer(char) + 0x528, 1, false) == 19 or
+                    readMemory(getCharPointer(char) + 0x528, 1, false) == 27)) or data.camMode == 55 then
                 local aspects = {playerAimData.realAspect}
 
                 if playerAimData.realAspect == "16:9" then
@@ -1337,7 +1338,6 @@ function sampev.onAimSync(playerId, data)
 
                     local result, colPoint = processLineOfSight(p1x, p1y, p1z, p2x, p2y, p2z, true, true, true, true,
                         true, true, true, true)
-                        print(result,colPoint)
                     if result then
                         if colPoint.entityType == 3 and colPoint.entity == getCharPointer(playerPed) then
                             if playerAimData.weapon == 34 then
@@ -1615,9 +1615,12 @@ function imgui.OnDrawFrame()
             end
 
             if DEBUG_NEED_AIMLINE.v or DEBUG_NEED_AIMLINES.v then
-                createImguiCheckbox(DEBUG_NEED_DRAW_ANGLES, 'options', 'debugNeedToDrawAngles', 'settingDebugNeedDrawAngles', 'tooltipSettingDebugNeedDrawAngles')
-                createImguiCheckbox(DEBUG_NEED_TO_TWEAK_ANGLES, 'options', 'debugNeedToTweakAngles', 'settingNeedToTweakAngles', 'tooltipSettingNeedToTweakAngles')
-                createImguiCheckbox(DEBUG_NEED_TO_SAVE_ANGLES_INI, 'options', 'debugNeedToSaveAngles', 'settingNeedToSaveAnglesIni', 'tooltipSettingNeedToSaveAnglesIni')
+                createImguiCheckbox(DEBUG_NEED_DRAW_ANGLES, 'options', 'debugNeedToDrawAngles',
+                    'settingDebugNeedDrawAngles', 'tooltipSettingDebugNeedDrawAngles')
+                createImguiCheckbox(DEBUG_NEED_TO_TWEAK_ANGLES, 'options', 'debugNeedToTweakAngles',
+                    'settingNeedToTweakAngles', 'tooltipSettingNeedToTweakAngles')
+                createImguiCheckbox(DEBUG_NEED_TO_SAVE_ANGLES_INI, 'options', 'debugNeedToSaveAngles',
+                    'settingNeedToSaveAnglesIni', 'tooltipSettingNeedToSaveAnglesIni')
             end
         end
 
