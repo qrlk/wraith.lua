@@ -5,7 +5,7 @@ script_author("qrlk")
 script_description("wraith passive + tactical")
 -- made for https://www.blast.hk/threads/193650/
 script_url("https://github.com/qrlk/wraith.lua")
-script_version("20.12.2023-dev2")
+script_version("20.12.2023-dev3")
 
 -- https://github.com/qrlk/qrlk.lua.moonloader
 local enable_sentry = true -- false to disable error reports to sentry.io
@@ -823,17 +823,17 @@ function triggerPassive(typ, enemyPed)
             if typ == "aiming" then
                 playRandomFromCategory('aiming')
                 if PASSIVE_STRING.v then
-                    printStyledString(string.format("AIMED by %s (%sm)", nick, dist), 5000, 5)
+                    printStyledString(string.format("AIMED by %s [%s] (%sm)", nick, id, dist), 5000, 5)
                 end
             elseif typ == "sniper" then
                 playRandomFromCategory('sniper')
                 if PASSIVE_STRING.v then
-                    printStyledString(string.format("SNIPER!!! %s (%sm)", nick, dist), 3000, 5)
+                    printStyledString(string.format("SNIPER!!! %s [%s] (%sm)", nick, id, dist), 3000, 5)
                 end
             elseif typ == "vehicle" then
                 playRandomFromCategory('vehicle')
                 if PASSIVE_STRING.v then
-                    printStyledString(string.format("DANGER!!! %s (%sm)", nick, dist), 3000, 5)
+                    printStyledString(string.format("DANGER!!! %s [%s] (%sm)", nick, id, dist), 3000, 5)
                 end
             end
 
