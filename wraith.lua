@@ -5,7 +5,7 @@ script_author("qrlk")
 script_description("wraith passive + tactical")
 -- made for https://www.blast.hk/threads/193650/
 script_url("https://github.com/qrlk/wraith.lua")
-script_version("20.12.2023-dev1")
+script_version("20.12.2023-dev2")
 
 -- https://github.com/qrlk/qrlk.lua.moonloader
 local enable_sentry = true -- false to disable error reports to sentry.io
@@ -47,6 +47,7 @@ local as_action = require('moonloader').audiostream_state
 local my_font = renderCreateFont('Verdana', 12, font_flag.BOLD + font_flag.SHADOW)
 
 local imgui = require 'imgui'
+local memory = require("memory")
 
 local encoding = require "encoding"
 encoding.default = 'CP1251'
@@ -61,7 +62,17 @@ local i18n = {
             en = "{348cb2}wraith.lua v" .. thisScript().version ..
                 " activated! {7ef3fa}/wraith - menu. {348cb2}</> by qrlk for blast.hk SC23 competition.",
             ru = "{348cb2}wraith.lua v" .. thisScript().version ..
-                " активирован! {7ef3fa}/wraith - меню. {348cb2}Автор: qrlk специально для blast.hk SC23."
+                " активирован! {7ef3fa}/wraith - menu. {348cb2}Автор: qrlk специально для blast.hk SC23."
+        },
+
+        radioDisabledWarning = {
+            en = "{348cb2}wraith.lua cannot play sounds. {7ef3fa}Increase the radio volume in the settings and restart the game.",
+            ru = "{348cb2}wraith.lua не может воспроизводить звуки. {7ef3fa}Увеличьте громкость радио в настройках и перезайдите в игру."
+        },
+
+        radioDisabledWarningImgui = {
+            en = "Increase the radio volume in settings and restart the game.",
+            ru = "Увеличьте громкость радио в настройках и перезайдите в игру."
         },
 
         changeLang = {
@@ -112,8 +123,26 @@ local i18n = {
         },
 
         sectionAudio = {
-            en = "Audio [enable radio in settings]",
-            ru = "Аудио [включите радио в настройках]"
+            en = "Audio",
+            ru = "Аудио"
+        },
+
+        settingNoRadio = {
+            en = "Block radio selection in vehicles",
+            ru = "Блокировать выбор радио в машине"
+        },
+        tooltipSettingNoRadio = {
+            en = "Turns off the radio in the car if it bothers you.\nAfter changing the setting, you need to restart the game.",
+            ru = "Выключает радио в машине, если оно вам мешает.\nПосле изменения настройки нужен перезапуск игры."
+        },
+
+        settingIgnoreMissing = {
+            en = "Ignore missing sounds",
+            ru = "Игнорировать ненайденные звуки"
+        },
+        tooltipSettingIgnoreMissing = {
+            en = "Enable this setting to remove the chat warning that audio was not found when attempting to play.",
+            ru = "Включите эту настройку, чтобы убрать предупреждение в чате, что звук при попытке воспроизведения не был найден."
         },
 
         settingAudioLanguage = {
@@ -123,6 +152,11 @@ local i18n = {
         settingVolume = {
             en = "Volume",
             ru = "Громкость"
+        },
+
+        settingVolumeQuietOffset = {
+            en = "Increased volume for quiet sounds",
+            ru = "Увеличение громкости для тихих звуков"
         },
 
         randomSound = {
@@ -192,6 +226,15 @@ local i18n = {
             ru = "Если активно, для активации помимо основной клавиши нужно будет держать левый альт."
         },
 
+        settingTacticalInstant = {
+            en = "Remove delay before activation",
+            ru = "Убрать задержку перед активацией"
+        },
+        tooltipSettingTacticalInstant = {
+            en = "If active, there will be no delay before activation - but you will not be able to cancel the ability's activation.",
+            ru = "Если активно, задержки перед активацией не будет - но вы не сможете отменить запуск способности."
+        },
+
         tacticalCheatWarning = {
             en = "Attention! This is a cheat! Turn the ability off if you don't know what you're doing.",
             ru = "Внимание! Это чит! Отключите способность, если не понимаете что делаете."
@@ -199,6 +242,19 @@ local i18n = {
         tacticalHotkey = {
             en = "Hotkey to trigger: ",
             ru = "Кнопка активации: "
+        },
+
+        phasingStart1 = {
+            en = "PHASING.. HOLD ",
+            ru = "PHASING.. DERJI "
+        },
+        phasingStart2 = {
+            en = " TO CANCEL",
+            ru = " DLYA OTMENI"
+        },
+        phasingCanceled = {
+            en = "PHASING CANCELLED",
+            ru = "OTMEHA"
         },
 
         settingTacticalCooldown = {
@@ -282,6 +338,33 @@ local i18n = {
             ru = ""
         },
 
+        settingDebugNeedDrawAngles = {
+            en = "Render current angle",
+            ru = "Рендерит текущие углы"
+        },
+        tooltipSettingDebugNeedDrawAngles = {
+            en = "",
+            ru = ""
+        },
+
+        settingNeedToTweakAngles = {
+            en = "Need to tweak angles",
+            ru = "Нужно изменять углы"
+        },
+        tooltipSettingNeedToTweakAngles = {
+            en = "Activates changing weapon angles via alt + keyboard arrows",
+            ru = "Активирует изменение углов оружия через alt + стрелки клавиатуры"
+        },
+
+        settingNeedToSaveAnglesIni = {
+            en = "Save angles",
+            ru = "Сохранять измененные углы"
+        },
+        tooltipSettingNeedToSaveAnglesIni = {
+            en = "don't touch pls",
+            ru = "не трогайте"
+        },
+
         legacyChangeKeyTitle = {
             en = "Changing hotkey",
             ru = "Изменение горячей клавиши"
@@ -312,8 +395,8 @@ local i18n = {
         },
 
         pleaseDownloadResources = {
-            en = 'Download the resources from https://github.com/qrlk/wraith.lua/releases and place them in your moonloader folder!',
-            ru = 'Скачайте архив с ресурсами с https://github.com/qrlk/wraith.lua/releases и поместите в папку moonloader!'
+            en = 'Download the resources from http://qrlk.me/wraith and place them in your moonloader folder!',
+            ru = 'Скачайте архив с ресурсами с http://qrlk.me/wraith и поместите в папку moonloader!'
         }
 
     },
@@ -404,22 +487,29 @@ local cfg = inicfg.load({
         debugNeed3dtext = true,
         debugNeedAimLine = true,
         debugNeedAimLineFull = true,
-        debugNeedAimLineLOS = true
+        debugNeedAimLineLOS = true,
+        debugNeedToDrawAngles = false,
+        debugNeedToTweakAngles = false,
+        debugNeedToSaveAngles = false,
     },
     audio = {
         language = "ru",
-        volume = 10
+        volume = 5,
+        quietOffset = 5,
+        noRadio = false,
+        ignoreMissing = false
     },
     tactical = {
         enable = false,
         alt = true,
+        instant = false,
         key = 0x51,
         cooldown = 15
     },
     passive = {
         enable = true,
-        printStyledString = false,
-        showTempTracer = false,
+        printStyledString = true,
+        showTempTracer = true,
         cooldown = 20
     }
 }, 'wraith')
@@ -444,7 +534,6 @@ local welcomeMessage = imgui.ImBool(cfg.options.welcomeMessage)
 
 --
 local DEBUG = imgui.ImBool(cfg.options.debug)
-local DEBUG_NEED_DRAW_ANGLES = false
 
 local DEBUG_NEED_AIMLINES = imgui.ImBool(cfg.options.debugNeedAimLines)
 local DEBUG_NEED_AIMLINES_FULL = imgui.ImBool(cfg.options.debugNeedAimLinesFull)
@@ -452,12 +541,18 @@ local DEBUG_NEED_AIMLINES_LOS = imgui.ImBool(cfg.options.debugNeedAimLinesLOS)
 local DEBUG_NEED_3DTEXT = imgui.ImBool(cfg.options.debugNeed3dtext)
 
 local DEBUG_NEED_AIMLINE = imgui.ImBool(cfg.options.debugNeedAimLine)
-local DEBUG_NEED_TO_TWEAK_ANGLES = false
-local DEBUG_NEED_TO_SAVE_ANGLES_INI = false
 local DEBUG_NEED_AIMLINE_FULL = imgui.ImBool(cfg.options.debugNeedAimLineFull)
 local DEBUG_NEED_AIMLINE_LOS = imgui.ImBool(cfg.options.debugNeedAimLineLOS)
 
+local DEBUG_NEED_DRAW_ANGLES = imgui.ImBool(cfg.options.debugNeedToDrawAngles)
+local DEBUG_NEED_TO_TWEAK_ANGLES = imgui.ImBool(cfg.options.debugNeedToTweakAngles)
+local DEBUG_NEED_TO_SAVE_ANGLES_INI = imgui.ImBool(cfg.options.debugNeedToSaveAngles)
+
+local NO_RADIO = imgui.ImBool(cfg.audio.noRadio)
 local AUDIO_VOLUME = imgui.ImInt(cfg.audio.volume)
+local AUDIO_VOLUME_QUIET_OFFSET = imgui.ImInt(cfg.audio.quietOffset)
+
+local AUDIO_IGNORE_MISSING_RESOURCES = imgui.ImBool(cfg.audio.ignoreMissing)
 local AUDIO_LANGUAGE = imgui.ImInt(0)
 for k, v in pairs(audioLanguages) do
     if v == cfg.audio.language then
@@ -473,6 +568,7 @@ local PASSIVE_COOLDOWN = imgui.ImInt(cfg.passive.cooldown)
 local TACTICAL_ENABLE = imgui.ImBool(cfg.tactical.enable)
 local TACTICAL_COOLDOWN = imgui.ImInt(cfg.tactical.cooldown)
 local TACTICAL_LMENU = imgui.ImBool(cfg.tactical.alt)
+local TACTICAL_INSTANT = imgui.ImBool(cfg.tactical.instant)
 
 local DEBUG_NEED_TO_EMULATE_CAMERA = false
 local DEBUG_NEED_TO_EMULATE_CAMERA_BY_ID = 3
@@ -610,8 +706,8 @@ local anglesPerAspectRatio = inicfg.load({
         curRFz = 0.047
     },
     ["4:3"] = {
-        curxy = -0.047,
-        curz = 0.111,
+        curxy = -0.044,
+        curz = 0.109,
         curARxy = -0.03,
         curARz = 0.07,
         curRFxy = -0.019,
@@ -761,22 +857,27 @@ function getRandomSoundName()
 end
 local CURRENT_RANDOM_SOUND = getRandomSoundName()
 
-function playSingleSoundNow(path)
-    if mainSoundStream then
-        setAudioStreamState(mainSoundStream, as_action.STOP)
-    end
+function playMainSoundNow(path)
+    stopMainSoundNow()
     if doesFileExist(path) then
         mainSoundStream = loadAudioStream(path)
         if cfg.audio.volume ~= 0 and string.find(path, "wraith_voices") then
-            setAudioStreamVolume(mainSoundStream, cfg.audio.volume + 10)
+            setAudioStreamVolume(mainSoundStream, cfg.audio.volume + cfg.audio.quietOffset)
         else
             setAudioStreamVolume(mainSoundStream, cfg.audio.volume)
         end
 
         setAudioStreamState(mainSoundStream, as_action.PLAY)
     else
-        sampAddChatMessage(getMessage('cantFindResources') .. path, -1)
-        sampAddChatMessage(getMessage('pleaseDownloadResources'), -1)
+        if not AUDIO_IGNORE_MISSING_RESOURCES.v then
+            sampAddChatMessage(getMessage('cantFindResources') .. path, -1)
+            sampAddChatMessage(getMessage('pleaseDownloadResources'), -1)
+        end
+    end
+end
+function stopMainSoundNow()
+    if mainSoundStream then
+        setAudioStreamState(mainSoundStream, as_action.STOP)
     end
 end
 
@@ -785,16 +886,20 @@ function playReserveSoundNow(path)
     stopReserveSoundNow()
     if doesFileExist(path) then
         reserveSoundStream = loadAudioStream(path)
-        if cfg.audio.volume ~= 0 and (string.find(path, "wraith_voices") or string.find(path, "tactical.mp3")) then
-            setAudioStreamVolume(reserveSoundStream, cfg.audio.volume + 10)
+        if cfg.audio.volume ~= 0 and
+            (string.find(path, "wraith_voices") or string.find(path, "tactical.mp3") or
+                string.find(path, "tactical_instant.mp3")) then
+            setAudioStreamVolume(reserveSoundStream, cfg.audio.volume + cfg.audio.quietOffset)
         else
             setAudioStreamVolume(reserveSoundStream, cfg.audio.volume)
         end
 
         setAudioStreamState(reserveSoundStream, as_action.PLAY)
     else
-        sampAddChatMessage(path .. getMessage('cantFindResources'), -1)
-        sampAddChatMessage(getMessage('pleaseDownloadResources'), -1)
+        if not AUDIO_IGNORE_MISSING_RESOURCES.v then
+            sampAddChatMessage(getMessage('cantFindResources') .. path, -1)
+            sampAddChatMessage(getMessage('pleaseDownloadResources'), -1)
+        end
     end
 end
 
@@ -808,8 +913,7 @@ function playRandomFromCategory(category)
     local tempSoundPath = getWorkingDirectory() .. "\\resource\\wraith\\" .. cfg.audio.language .. "\\" ..
                               audioLines[category][math.random(#audioLines[category])]
 
-    mainSoundStream = loadAudioStream(tempSoundPath)
-    playSingleSoundNow(tempSoundPath)
+    playMainSoundNow(tempSoundPath)
 end
 
 function main()
@@ -827,8 +931,6 @@ function main()
     -- вырежи тут, если хочешь отключить проверку обновлений
 
     -- sc23
-
-    wait(2000)
 
     if DEBUG_ENABLE_WEATHER_BROWSE then
         local weather = 478
@@ -865,6 +967,7 @@ function main()
     end
 
     local phasingSoundPath = getWorkingDirectory() .. "\\resource\\wraith\\tactical.mp3"
+    local phasingInstantSoundPath = getWorkingDirectory() .. "\\resource\\wraith\\tactical_instant.mp3"
 
     sampRegisterChatCommand('wraith', function()
         main_window_state.v = not main_window_state.v
@@ -877,6 +980,18 @@ function main()
     end
     if cfg.options.welcomeMessage then
         sampAddChatMessage(getMessage('welcomeMessage'), 0x7ef3fa)
+
+        if getVolume().radio == 0 and cfg.audio.volume ~= 0 then
+            sampAddChatMessage(getMessage('radioDisabledWarning'), 0x7ef3fa)
+        end
+
+        if TACTICAL_ENABLE.v then
+            playRandomFromCategory('isReady')
+        end
+    end
+
+    if cfg.audio.noRadio then
+        memory.copy(0x4EB9A0, memory.strptr("\xC2\x04\x00"), 3, true)
     end
 
     while true do
@@ -887,25 +1002,41 @@ function main()
                 if isCharOnFoot(playerPed) and not isCharDead(playerPed) then
                     if os.clock() - TACTICAL_COOLDOWN.v > wraith_tactical_lastused then
                         table.insert(tempThreads, lua_thread.create(function()
+                            if TACTICAL_INSTANT.v then
+                                if cfg.tactical.key ~= 0x51 or readMemory(getCharPointer(playerPed) + 0x528, 1, false) ==
+                                    19 then
+                                    wait(200)
+                                else
+                                    wait(100)
+                                    setGameKeyState(7, 1)
+                                    wait(100)
+                                end
 
-                            playReserveSoundNow(phasingSoundPath)
-
-                            printStyledString("PHASING.. HOLD " .. key.id_to_name(cfg.tactical.key) .. " TO CANCEL",
-                                2000, 5)
-                            if cfg.tactical.key ~= 0x51 or readMemory(getCharPointer(playerPed) + 0x528, 1, false) == 19 then
-                                wait(200)
+                                playReserveSoundNow(phasingInstantSoundPath)
+                                wait(50)
+                                playRandomFromCategory('tactical')
                             else
-                                wait(100)
-                                setGameKeyState(7, 1)
-                                wait(100)
-                            end
+                                playReserveSoundNow(phasingSoundPath)
+                                -- todo fix dry
 
-                            wait(500)
-                            playRandomFromCategory('tactical')
-                            wait(1500)
-                            if isKeyDown(cfg.tactical.key) then
+                                printStyledString(getMessage('phasingStart1') .. key.id_to_name(cfg.tactical.key) ..
+                                                      getMessage('phasingStart2'), 2000, 5)
+                                if cfg.tactical.key ~= 0x51 or readMemory(getCharPointer(playerPed) + 0x528, 1, false) ==
+                                    19 then
+                                    wait(200)
+                                else
+                                    wait(100)
+                                    setGameKeyState(7, 1)
+                                    wait(100)
+                                end
+
+                                wait(500)
+                                playRandomFromCategory('tactical')
+                                wait(1500)
+                            end
+                            if not TACTICAL_INSTANT.v and isKeyDown(cfg.tactical.key) then
                                 wraith_tactical_active = false
-                                printStyledString("PHASING CANCELLED", 2000, 5)
+                                printStyledString(getMessage('phasingCanceled'), 2000, 5)
                                 stopReserveSoundNow()
                                 playRandomFromCategory('no')
                                 wait(2000)
@@ -957,7 +1088,7 @@ function main()
                         -- blocking passive because we are underground
                         local start_wait = os.clock()
                         wait(4000)
-                        while os.clock() - start_wait < 6.5 do
+                        while os.clock() - start_wait < (TACTICAL_INSTANT.v and 4.5 or 6.5) do
                             wait(0)
                             if wraith_tactical_active then
                                 wait(100)
@@ -1036,7 +1167,7 @@ function main()
         end
 
         if DEBUG.v and DEBUG_NEED_AIMLINE.v and playerPedAimData then
-            if DEBUG.v and DEBUG_NEED_TO_TWEAK_ANGLES then
+            if DEBUG.v and DEBUG_NEED_TO_TWEAK_ANGLES.v then
                 processDebugOffset(playerPedAimData.realAspect, playerPedAimData.weapon)
             end
 
@@ -1109,7 +1240,7 @@ function processAimLine(data, aspect)
     -- data.weapon
     local currentWeaponAngle = getCurrentWeaponAngle(aspect, data.weapon)
 
-    if DEBUG.v and DEBUG_NEED_DRAW_ANGLES then
+    if DEBUG.v and DEBUG_NEED_DRAW_ANGLES.v then
         renderFontDrawText(my_font,
             string.format('a: %s || w: %s || curxy: %s || curz: %s', aspect, data.weapon, currentWeaponAngle[1],
                 currentWeaponAngle[2]), 100, 400, 0xFFFFFFFF)
@@ -1282,7 +1413,15 @@ end
 function playTestSound()
     local tempSoundPath = getWorkingDirectory() .. "\\resource\\wraith\\" .. cfg.audio.language .. "\\" ..
                               CURRENT_RANDOM_SOUND
-    playSingleSoundNow(tempSoundPath)
+    playMainSoundNow(tempSoundPath)
+end
+
+function getVolume()
+    return {
+        radio = 100 / 64 * require('memory').getint8(0xBA6798, true),
+        SFX = 100 / 64 * require('memory').getint8(0xBA6797, true)
+    }
+    -- можно использовать return memory.getint8(0xBA6798, true), но там максимальное число 64, то есть если радио на фулл то вернет 64
 end
 
 function imgui.OnDrawFrame()
@@ -1335,8 +1474,8 @@ function imgui.OnDrawFrame()
                 'tooltipSettingPassiveString')
 
             imgui.PushItemWidth(200)
-            imgui.SliderInt(u8:encode(getMessage('settingPassiveCooldown')), PASSIVE_COOLDOWN, 10, 60)
-            if PASSIVE_COOLDOWN.v ~= cfg.passive.cooldown and PASSIVE_COOLDOWN.v <= 60 then
+            imgui.SliderInt(u8:encode(getMessage('settingPassiveCooldown')), PASSIVE_COOLDOWN, 6, 100)
+            if PASSIVE_COOLDOWN.v ~= cfg.passive.cooldown and PASSIVE_COOLDOWN.v >= 6 and PASSIVE_COOLDOWN.v <= 100 then
                 cfg.passive.cooldown = PASSIVE_COOLDOWN.v
                 saveCfg()
             end
@@ -1382,10 +1521,12 @@ function imgui.OnDrawFrame()
                 end))
             end
             createImguiCheckbox(TACTICAL_LMENU, 'tactical', 'alt', 'settingTacticalAlt', 'tooltipSettingTacticalAlt')
+            createImguiCheckbox(TACTICAL_INSTANT, 'tactical', 'instant', 'settingTacticalInstant',
+                'tooltipSettingTacticalInstant')
 
             imgui.PushItemWidth(200)
-            imgui.SliderInt(u8:encode(getMessage('settingTacticalCooldown')), TACTICAL_COOLDOWN, 12, 60)
-            if TACTICAL_COOLDOWN.v ~= cfg.tactical.cooldown and TACTICAL_COOLDOWN.v <= 60 then
+            imgui.SliderInt(u8:encode(getMessage('settingTacticalCooldown')), TACTICAL_COOLDOWN, 5, 100)
+            if TACTICAL_COOLDOWN.v ~= cfg.tactical.cooldown and TACTICAL_COOLDOWN.v >= 5 and TACTICAL_COOLDOWN.v <= 100 then
                 cfg.tactical.cooldown = TACTICAL_COOLDOWN.v
                 saveCfg()
             end
@@ -1395,6 +1536,16 @@ function imgui.OnDrawFrame()
 
         imgui.Text(u8:encode(getMessage('sectionAudio')))
 
+        if getVolume().radio == 0 and cfg.audio.volume ~= 0 then
+            imgui.TextColored(imgui.ImColor(255, 0, 0, 255):GetVec4(),
+                u8:encode(getMessage('radioDisabledWarningImgui')))
+        end
+
+        createImguiCheckbox(NO_RADIO, 'audio', 'noRadio', 'settingNoRadio', 'tooltipSettingNoRadio')
+
+        createImguiCheckbox(AUDIO_IGNORE_MISSING_RESOURCES, 'audio', 'ignoreMissing', 'settingIgnoreMissing',
+            'tooltipSettingIgnoreMissing')
+
         imgui.PushItemWidth(200)
         if imgui.Combo(u8:encode(getMessage('settingAudioLanguage')), AUDIO_LANGUAGE,
             i18n.audioLangTable[cfg.options.language], 10) then
@@ -1402,11 +1553,26 @@ function imgui.OnDrawFrame()
             playTestSound()
             saveCfg()
         end
+
         imgui.PushItemWidth(200)
         imgui.SliderInt(u8:encode(getMessage('settingVolume')), AUDIO_VOLUME, 0, 100)
-        if AUDIO_VOLUME.v ~= cfg.audio.volume and AUDIO_VOLUME.v <= 100 then
+        if AUDIO_VOLUME.v ~= cfg.audio.volume and AUDIO_VOLUME.v >= 0 and AUDIO_VOLUME.v <= 100 then
             cfg.audio.volume = AUDIO_VOLUME.v
             playTestSound()
+            saveCfg()
+        end
+
+        imgui.PushItemWidth(200)
+        imgui.SliderInt(u8:encode(getMessage('settingVolumeQuietOffset')), AUDIO_VOLUME_QUIET_OFFSET, 0, 100)
+        if AUDIO_VOLUME_QUIET_OFFSET.v ~= cfg.audio.quietOffset and AUDIO_VOLUME_QUIET_OFFSET.v >= 0 and
+            AUDIO_VOLUME_QUIET_OFFSET.v <= 100 then
+            cfg.audio.quietOffset = AUDIO_VOLUME_QUIET_OFFSET.v
+            if math.random(1, 10) % 2 == 0 then
+                playRandomFromCategory('aiming')
+            else
+                -- fix
+                playReserveSoundNow(getWorkingDirectory() .. "\\resource\\wraith\\tactical_instant.mp3")
+            end
             saveCfg()
         end
 
@@ -1441,6 +1607,12 @@ function imgui.OnDrawFrame()
                     'settingDebugNeedAimLineFull', 'tooltipSettingDebugNeedAimLineFull')
                 createImguiCheckbox(DEBUG_NEED_AIMLINE_LOS, 'options', 'debugNeedAimLineLOS',
                     'settingDebugNeedAimLineLOS', 'tooltipSettingDebugNeedAimLineLOS')
+            end
+
+            if DEBUG_NEED_AIMLINE.v or DEBUG_NEED_AIMLINES.v then
+                createImguiCheckbox(DEBUG_NEED_DRAW_ANGLES, 'options', 'debugNeedToDrawAngles', 'settingDebugNeedDrawAngles', 'tooltipSettingDebugNeedDrawAngles')
+                createImguiCheckbox(DEBUG_NEED_TO_TWEAK_ANGLES, 'options', 'debugNeedToTweakAngles', 'settingNeedToTweakAngles', 'tooltipSettingNeedToTweakAngles')
+                createImguiCheckbox(DEBUG_NEED_TO_SAVE_ANGLES_INI, 'options', 'debugNeedToSaveAngles', 'settingNeedToSaveAnglesIni', 'tooltipSettingNeedToSaveAnglesIni')
             end
         end
 
@@ -1510,7 +1682,7 @@ end
 
 -- debug
 function saveDebugIniIfNeeded()
-    if DEBUG.v and DEBUG_NEED_TO_SAVE_ANGLES_INI then
+    if DEBUG.v and DEBUG_NEED_TO_SAVE_ANGLES_INI.v then
         inicfg.save(anglesPerAspectRatio, angelsIniFileName)
     end
 end
