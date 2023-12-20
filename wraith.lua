@@ -5,7 +5,7 @@ script_author("qrlk")
 script_description("wraith passive + tactical")
 -- made for https://www.blast.hk/threads/193650/
 script_url("https://github.com/qrlk/wraith.lua")
-script_version("20.12.2023-dev3")
+script_version("20.12.2023-rc1")
 
 -- https://github.com/qrlk/qrlk.lua.moonloader
 local enable_sentry = true -- false to disable error reports to sentry.io
@@ -60,9 +60,9 @@ local i18n = {
     data = {
         welcomeMessage = {
             en = "{348cb2}wraith.lua v" .. thisScript().version ..
-                " activated! {7ef3fa}/wraith - menu. {348cb2}</> by qrlk for blast.hk SC23 competition.",
+                " activated! {7ef3fa}/wraith - menu. {348cb2}</> by qrlk for {7ef3fa}BLASTHACK.NET{348cb2} SC23 competition.",
             ru = "{348cb2}wraith.lua v" .. thisScript().version ..
-                " активирован! {7ef3fa}/wraith - menu. {348cb2}Автор: qrlk специально для blast.hk SC23."
+                " активирован! {7ef3fa}/wraith - menu. {348cb2}Автор: qrlk специально для {7ef3fa}BLASTHACK.NET{348cb2} SC23."
         },
 
         radioDisabledWarning = {
@@ -857,6 +857,7 @@ function getRandomSoundName()
 end
 local CURRENT_RANDOM_SOUND = getRandomSoundName()
 
+
 function playMainSoundNow(path)
     stopMainSoundNow()
     if doesFileExist(path) then
@@ -1317,13 +1318,14 @@ function sampev.onAimSync(playerId, data)
                 realAspectHit = hit,
                 realAspect = realAspect,
                 weapon = getCurrentCharWeapon(char)
-            }
+            } 
 
             if DEBUG.v and (DEBUG_NEED_AIMLINES.v or DEBUG_NEED_3DTEXT.v) then
                 playersAimData[nick] = playerAimData
             end
 
-            if (data.camMode ~= 4 and readMemory(getCharPointer(char) + 0x528, 1, false) == 19) or data.camMode == 55 then
+            --TODO 27 when cant see ped?
+            if (data.camMode ~= 4 and (readMemory(getCharPointer(char) + 0x528, 1, false) == 19 or readMemory(getCharPointer(char) + 0x528, 1, false) == 27)) or data.camMode == 55 then
                 local aspects = {playerAimData.realAspect}
 
                 if playerAimData.realAspect == "16:9" then
@@ -1335,6 +1337,7 @@ function sampev.onAimSync(playerId, data)
 
                     local result, colPoint = processLineOfSight(p1x, p1y, p1z, p2x, p2y, p2z, true, true, true, true,
                         true, true, true, true)
+                        print(result,colPoint)
                     if result then
                         if colPoint.entityType == 3 and colPoint.entity == getCharPointer(playerPed) then
                             if playerAimData.weapon == 34 then
@@ -1567,6 +1570,8 @@ function imgui.OnDrawFrame()
         if AUDIO_VOLUME_QUIET_OFFSET.v ~= cfg.audio.quietOffset and AUDIO_VOLUME_QUIET_OFFSET.v >= 0 and
             AUDIO_VOLUME_QUIET_OFFSET.v <= 100 then
             cfg.audio.quietOffset = AUDIO_VOLUME_QUIET_OFFSET.v
+            stopMainSoundNow()
+            stopReserveSoundNow()
             if math.random(1, 10) % 2 == 0 then
                 playRandomFromCategory('aiming')
             else
