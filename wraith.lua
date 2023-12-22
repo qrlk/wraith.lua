@@ -5,7 +5,7 @@ script_author("qrlk")
 script_description("wraith passive + tactical")
 -- made for https://www.blast.hk/threads/193650/
 script_url("https://github.com/qrlk/wraith.lua")
-script_version("20.12.2023-rc2")
+script_version("23.12.2023-rc3")
 
 -- https://github.com/qrlk/qrlk.lua.moonloader
 local enable_sentry = true -- false to disable error reports to sentry.io
@@ -30,7 +30,7 @@ if enable_autoupdate then
         autoupdate_loaded, Update = pcall(Updater)
         if autoupdate_loaded then
             Update.json_url = "https://raw.githubusercontent.com/qrlk/wraith.lua/master/version.json?" ..
-                                  tostring(os.clock())
+                tostring(os.clock())
             Update.prefix = "[" .. string.upper(thisScript().name) .. "]: "
             Update.url = "https://github.com/qrlk/wraith.lua/"
         end
@@ -40,6 +40,7 @@ end
 --- start
 local inicfg = require "inicfg"
 local sampev = require "lib.samp.events"
+local aspectRatioKey = sampev.MODULEINFO.version >= 3 and 'aspectRatio' or 'unknown'
 local key = require 'vkeys'
 
 local font_flag = require('moonloader').font_flag
@@ -66,8 +67,10 @@ local i18n = {
         },
 
         radioDisabledWarning = {
-            en = "{348cb2}wraith.lua cannot play sounds. {7ef3fa}Increase the radio volume in the settings and restart the game.",
-            ru = "{348cb2}wraith.lua не может воспроизводить звуки. {7ef3fa}Увеличьте громкость радио в настройках и перезайдите в игру."
+            en =
+            "{348cb2}wraith.lua cannot play sounds. {7ef3fa}Increase the radio volume in the settings and restart the game.",
+            ru =
+            "{348cb2}wraith.lua не может воспроизводить звуки. {7ef3fa}Увеличьте громкость радио в настройках и перезайдите в игру."
         },
 
         radioDisabledWarningImgui = {
@@ -95,8 +98,10 @@ local i18n = {
             ru = "Описание"
         },
         description = {
-            en = "wraith.lua is a cheat for SA:MP that implements some abilities of Wraith from Apex Legends.\n\nThis script was written by qrlk for the BLASTHACK community and the SC23 competition.",
-            ru = "wraith.lua - это чит, который переносит некоторые способности персонажа Wraith из игры Apex Legends в SA:MP.\n\nАвтор: qrlk. Скрипт написан специально для сообщества BLASTHACK (SC23)."
+            en =
+            "wraith.lua is a cheat for SA:MP that implements some abilities of Wraith from Apex Legends.\n\nThis script was written by qrlk for the BLASTHACK community and the SC23 competition.",
+            ru =
+            "wraith.lua - это чит, который переносит некоторые способности персонажа Wraith из игры Apex Legends в SA:MP.\n\nАвтор: qrlk. Скрипт написан специально для сообщества BLASTHACK (SC23)."
         },
 
         moreAboutScript = {
@@ -132,7 +137,8 @@ local i18n = {
             ru = "Блокировать выбор радио в машине"
         },
         tooltipSettingNoRadio = {
-            en = "Turns off the radio in the car if it bothers you.\nAfter changing the setting, you need to restart the game.",
+            en =
+            "Turns off the radio in the car if it bothers you.\nAfter changing the setting, you need to restart the game.",
             ru = "Выключает радио в машине, если оно вам мешает.\nПосле изменения настройки нужен перезапуск игры."
         },
 
@@ -142,7 +148,8 @@ local i18n = {
         },
         tooltipSettingIgnoreMissing = {
             en = "Enable this setting to remove the chat warning that audio was not found when attempting to play.",
-            ru = "Включите эту настройку, чтобы убрать предупреждение в чате, что звук при попытке воспроизведения не был найден."
+            ru =
+            "Включите эту настройку, чтобы убрать предупреждение в чате, что звук при попытке воспроизведения не был найден."
         },
 
         settingAudioLanguage = {
@@ -231,7 +238,8 @@ local i18n = {
             ru = "Убрать задержку перед активацией"
         },
         tooltipSettingTacticalInstant = {
-            en = "If active, there will be no delay before activation - but you will not be able to cancel the ability's activation.",
+            en =
+            "If active, there will be no delay before activation - but you will not be able to cancel the ability's activation.",
             ru = "Если активно, задержки перед активацией не будет - но вы не сможете отменить запуск способности."
         },
 
@@ -271,8 +279,10 @@ local i18n = {
             ru = "Включить отладку"
         },
         tooltipSettingDebug = {
-            en = "Gives access to debugging features. Playing with debugging enabled is not recommended;\ndebugging tools are not optimized for performance.",
-            ru = "Даёт доступ к отладочным функциям. Играть с включенной отладкой не рекомендуются,\nинструменты отладки не оптимизированы по производительности."
+            en =
+            "Gives access to debugging features. Playing with debugging enabled is not recommended;\ndebugging tools are not optimized for performance.",
+            ru =
+            "Даёт доступ к отладочным функциям. Играть с включенной отладкой не рекомендуются,\nинструменты отладки не оптимизированы по производительности."
         },
 
         settingDebugNeedAimLines = {
@@ -401,79 +411,79 @@ local i18n = {
 
     },
     audioLangTable = {
-        en = {'English', 'Russian', 'French', 'Italian', 'German', 'Spanish', 'Japanese', 'Korean', 'Polish', 'Chinese'},
-        ru = {u8 'Английский', u8 'Русский', u8 'Французский', u8 'Итальянский',
-              u8 'Немецкий', u8 'Испанский', u8 'Японский', u8 'Корейский',
-              u8 'Польский', u8 'Китайский'}
+        en = { 'English', 'Russian', 'French', 'Italian', 'German', 'Spanish', 'Japanese', 'Korean', 'Polish', 'Chinese' },
+        ru = { u8 'Английский', u8 'Русский', u8 'Французский', u8 'Итальянский',
+            u8 'Немецкий', u8 'Испанский', u8 'Японский', u8 'Корейский',
+            u8 'Польский', u8 'Китайский' }
     }
 }
 
 --
-local audioLanguages = {'en', 'ru', 'fr', 'it', 'de', 'es', 'ja', 'ko', 'pl', 'zh'}
+local audioLanguages = { 'en', 'ru', 'fr', 'it', 'de', 'es', 'ja', 'ko', 'pl', 'zh' }
 local audioLines = {
-    aiming = {"diag_mp_wraith_voices_seesPlayer_urgent_01_01_1p.mp3",
-              "diag_mp_wraith_voices_seesPlayer_urgent_01_02_1p.mp3",
-              "diag_mp_wraith_voices_seesPlayer_urgent_02_01_1p.mp3",
-              "diag_mp_wraith_voices_seesPlayer_urgent_02_02_1p.mp3",
-              "diag_mp_wraith_voices_seesPlayer_urgent_02_03_1p.mp3",
-              "diag_mp_wraith_voices_seesPlayer_urgent_03_01_1p.mp3",
-              "diag_mp_wraith_voices_seesPlayer_urgent_03_02_1p.mp3",
-              "diag_mp_wraith_voices_seesPlayer_urgent_04_01_1p.mp3",
-              "diag_mp_wraith_voices_seesPlayer_urgent_04_02_1p.mp3",
-              "diag_mp_wraith_voices_seesPlayer_urgent_05_01_1p.mp3",
-              "diag_mp_wraith_voices_seesPlayer_urgent_05_02_1p.mp3"},
-    lol = {"diag_mp_wraith_bc_locationAWH_01_01_1p.mp3", "diag_mp_wraith_bc_locationAWH_01_02_1p.mp3"},
-    no = {"diag_mp_wraith_ping_no_01_01_1p.mp3", "diag_mp_wraith_ping_no_01_02_1p.mp3",
-          "diag_mp_wraith_ping_no_01_03_1p.mp3", "diag_mp_wraith_ping_no_02_01_1p.mp3",
-          "diag_mp_wraith_ping_no_02_02_1p.mp3", "diag_mp_wraith_ping_no_02_03_1p.mp3"},
-    notReady = {"diag_mp_wraith_ping_ultUpdate_notReady_calm_01_01_1p.mp3",
-                "diag_mp_wraith_ping_ultUpdate_notReady_calm_01_02_1p.mp3",
-                "diag_mp_wraith_ping_ultUpdate_notReady_calm_02_01_1p.mp3",
-                "diag_mp_wraith_ping_ultUpdate_notReady_calm_02_02_1p.mp3",
-                "diag_mp_wraith_ping_ultUpdate_notReady_calm_02_03_1p.mp3",
-                "diag_mp_wraith_ping_ultUpdate_notReady_urgent_01_01_1p.mp3",
-                "diag_mp_wraith_ping_ultUpdate_notReady_urgent_01_02_1p.mp3",
-                "diag_mp_wraith_ping_ultUpdate_notReady_urgent_01_03_1p.mp3",
-                "diag_mp_wraith_ping_ultUpdate_notReady_urgent_02_01_1p.mp3",
-                "diag_mp_wraith_ping_ultUpdate_notReady_urgent_02_02_1p.mp3",
-                "diag_mp_wraith_ping_ultUpdate_notReady_urgent_02_03_1p.mp3"},
-    isReady = {"diag_mp_wraith_ping_ultUpdate_isReady_calm_01_01_1p.mp3",
-               "diag_mp_wraith_ping_ultUpdate_isReady_calm_01_02_1p.mp3",
-               "diag_mp_wraith_ping_ultUpdate_isReady_calm_01_03_1p.mp3",
-               "diag_mp_wraith_ping_ultUpdate_isReady_calm_01_04_1p.mp3",
-               "diag_mp_wraith_ping_ultUpdate_isReady_calm_01_05_1p.mp3",
-               "diag_mp_wraith_ping_ultUpdate_isReady_calm_02_01_1p.mp3",
-               "diag_mp_wraith_ping_ultUpdate_isReady_calm_02_02_1p.mp3",
-               "diag_mp_wraith_ping_ultUpdate_isReady_calm_02_03_1p.mp3",
-               "diag_mp_wraith_ping_ultUpdate_isReady_urgent_01_01_1p.mp3",
-               "diag_mp_wraith_ping_ultUpdate_isReady_urgent_01_02_1p.mp3",
-               "diag_mp_wraith_ping_ultUpdate_isReady_urgent_02_01_1p.mp3",
-               "diag_mp_wraith_ping_ultUpdate_isReady_urgent_02_02_1p.mp3",
-               "diag_mp_wraith_ping_ultUpdate_isReady_urgent_02_03_1p.mp3"},
-    sniper = {"diag_mp_wraith_voices_sniper_urgent_01_01_1p.mp3", "diag_mp_wraith_voices_sniper_urgent_01_02_1p.mp3",
-              "diag_mp_wraith_voices_sniper_urgent_01_03_1p.mp3", "diag_mp_wraith_voices_sniper_urgent_02_01_1p.mp3",
-              "diag_mp_wraith_voices_sniper_urgent_02_02_1p.mp3", "diag_mp_wraith_voices_sniper_urgent_02_03_1p.mp3",
-              "diag_mp_wraith_voices_sniper_urgent_03_01_1p.mp3", "diag_mp_wraith_voices_sniper_urgent_03_02_1p.mp3",
-              "diag_mp_wraith_voices_sniper_urgent_03_03_1p.mp3"},
-    tactical = {"diag_mp_wraith_bc_tactical_01_01_1p.mp3", "diag_mp_wraith_bc_tactical_01_02_1p.mp3",
-                "diag_mp_wraith_bc_tactical_01_03_1p.mp3", "diag_mp_wraith_bc_tactical_02_01_1p.mp3",
-                "diag_mp_wraith_bc_tactical_02_02_1p.mp3", "diag_mp_wraith_bc_tactical_02_03_1p.mp3",
-                "diag_mp_wraith_bc_tactical_03_01_1p.mp3", "diag_mp_wraith_bc_tactical_03_02_1p.mp3",
-                "diag_mp_wraith_bc_tactical_03_03_1p.mp3", "diag_mp_wraith_bc_tactical_04_01_1p.mp3",
-                "diag_mp_wraith_bc_tactical_04_02_1p.mp3", "diag_mp_wraith_bc_tactical_04_03_1p.mp3"},
-    vehicle = {"diag_mp_wraith_voices_hostiles_urgent_01_01_1p.mp3",
-               "diag_mp_wraith_voices_hostiles_urgent_01_02_1p.mp3",
-               "diag_mp_wraith_voices_hostiles_urgent_01_03_1p.mp3",
-               "diag_mp_wraith_voices_hostiles_urgent_02_01_1p.mp3",
-               "diag_mp_wraith_voices_hostiles_urgent_02_02_1p.mp3",
-               "diag_mp_wraith_voices_hostiles_urgent_03_01_1p.mp3",
-               "diag_mp_wraith_voices_hostiles_urgent_03_02_1p.mp3",
-               "diag_mp_wraith_voices_hostiles_urgent_03_03_1p.mp3",
-               "diag_mp_wraith_voices_hostiles_urgent_04_01_1p.mp3",
-               "diag_mp_wraith_voices_hostiles_urgent_04_02_1p.mp3",
-               "diag_mp_wraith_voices_hostiles_urgent_04_03_1p.mp3",
-               "diag_mp_wraith_voices_hostiles_urgent_05_01_1p.mp3",
-               "diag_mp_wraith_voices_hostiles_urgent_05_02_1p.mp3"}
+    aiming = { "diag_mp_wraith_voices_seesPlayer_urgent_01_01_1p.mp3",
+        "diag_mp_wraith_voices_seesPlayer_urgent_01_02_1p.mp3",
+        "diag_mp_wraith_voices_seesPlayer_urgent_02_01_1p.mp3",
+        "diag_mp_wraith_voices_seesPlayer_urgent_02_02_1p.mp3",
+        "diag_mp_wraith_voices_seesPlayer_urgent_02_03_1p.mp3",
+        "diag_mp_wraith_voices_seesPlayer_urgent_03_01_1p.mp3",
+        "diag_mp_wraith_voices_seesPlayer_urgent_03_02_1p.mp3",
+        "diag_mp_wraith_voices_seesPlayer_urgent_04_01_1p.mp3",
+        "diag_mp_wraith_voices_seesPlayer_urgent_04_02_1p.mp3",
+        "diag_mp_wraith_voices_seesPlayer_urgent_05_01_1p.mp3",
+        "diag_mp_wraith_voices_seesPlayer_urgent_05_02_1p.mp3" },
+    lol = { "diag_mp_wraith_bc_locationAWH_01_01_1p.mp3", "diag_mp_wraith_bc_locationAWH_01_02_1p.mp3" },
+    no = { "diag_mp_wraith_ping_no_01_01_1p.mp3", "diag_mp_wraith_ping_no_01_02_1p.mp3",
+        "diag_mp_wraith_ping_no_01_03_1p.mp3", "diag_mp_wraith_ping_no_02_01_1p.mp3",
+        "diag_mp_wraith_ping_no_02_02_1p.mp3", "diag_mp_wraith_ping_no_02_03_1p.mp3" },
+    notReady = { "diag_mp_wraith_ping_ultUpdate_notReady_calm_01_01_1p.mp3",
+        "diag_mp_wraith_ping_ultUpdate_notReady_calm_01_02_1p.mp3",
+        "diag_mp_wraith_ping_ultUpdate_notReady_calm_02_01_1p.mp3",
+        "diag_mp_wraith_ping_ultUpdate_notReady_calm_02_02_1p.mp3",
+        "diag_mp_wraith_ping_ultUpdate_notReady_calm_02_03_1p.mp3",
+        "diag_mp_wraith_ping_ultUpdate_notReady_urgent_01_01_1p.mp3",
+        "diag_mp_wraith_ping_ultUpdate_notReady_urgent_01_02_1p.mp3",
+        "diag_mp_wraith_ping_ultUpdate_notReady_urgent_01_03_1p.mp3",
+        "diag_mp_wraith_ping_ultUpdate_notReady_urgent_02_01_1p.mp3",
+        "diag_mp_wraith_ping_ultUpdate_notReady_urgent_02_02_1p.mp3",
+        "diag_mp_wraith_ping_ultUpdate_notReady_urgent_02_03_1p.mp3" },
+    isReady = { "diag_mp_wraith_ping_ultUpdate_isReady_calm_01_01_1p.mp3",
+        "diag_mp_wraith_ping_ultUpdate_isReady_calm_01_02_1p.mp3",
+        "diag_mp_wraith_ping_ultUpdate_isReady_calm_01_03_1p.mp3",
+        "diag_mp_wraith_ping_ultUpdate_isReady_calm_01_04_1p.mp3",
+        "diag_mp_wraith_ping_ultUpdate_isReady_calm_01_05_1p.mp3",
+        "diag_mp_wraith_ping_ultUpdate_isReady_calm_02_01_1p.mp3",
+        "diag_mp_wraith_ping_ultUpdate_isReady_calm_02_02_1p.mp3",
+        "diag_mp_wraith_ping_ultUpdate_isReady_calm_02_03_1p.mp3",
+        "diag_mp_wraith_ping_ultUpdate_isReady_urgent_01_01_1p.mp3",
+        "diag_mp_wraith_ping_ultUpdate_isReady_urgent_01_02_1p.mp3",
+        "diag_mp_wraith_ping_ultUpdate_isReady_urgent_02_01_1p.mp3",
+        "diag_mp_wraith_ping_ultUpdate_isReady_urgent_02_02_1p.mp3",
+        "diag_mp_wraith_ping_ultUpdate_isReady_urgent_02_03_1p.mp3" },
+    sniper = { "diag_mp_wraith_voices_sniper_urgent_01_01_1p.mp3", "diag_mp_wraith_voices_sniper_urgent_01_02_1p.mp3",
+        "diag_mp_wraith_voices_sniper_urgent_01_03_1p.mp3", "diag_mp_wraith_voices_sniper_urgent_02_01_1p.mp3",
+        "diag_mp_wraith_voices_sniper_urgent_02_02_1p.mp3", "diag_mp_wraith_voices_sniper_urgent_02_03_1p.mp3",
+        "diag_mp_wraith_voices_sniper_urgent_03_01_1p.mp3", "diag_mp_wraith_voices_sniper_urgent_03_02_1p.mp3",
+        "diag_mp_wraith_voices_sniper_urgent_03_03_1p.mp3" },
+    tactical = { "diag_mp_wraith_bc_tactical_01_01_1p.mp3", "diag_mp_wraith_bc_tactical_01_02_1p.mp3",
+        "diag_mp_wraith_bc_tactical_01_03_1p.mp3", "diag_mp_wraith_bc_tactical_02_01_1p.mp3",
+        "diag_mp_wraith_bc_tactical_02_02_1p.mp3", "diag_mp_wraith_bc_tactical_02_03_1p.mp3",
+        "diag_mp_wraith_bc_tactical_03_01_1p.mp3", "diag_mp_wraith_bc_tactical_03_02_1p.mp3",
+        "diag_mp_wraith_bc_tactical_03_03_1p.mp3", "diag_mp_wraith_bc_tactical_04_01_1p.mp3",
+        "diag_mp_wraith_bc_tactical_04_02_1p.mp3", "diag_mp_wraith_bc_tactical_04_03_1p.mp3" },
+    vehicle = { "diag_mp_wraith_voices_hostiles_urgent_01_01_1p.mp3",
+        "diag_mp_wraith_voices_hostiles_urgent_01_02_1p.mp3",
+        "diag_mp_wraith_voices_hostiles_urgent_01_03_1p.mp3",
+        "diag_mp_wraith_voices_hostiles_urgent_02_01_1p.mp3",
+        "diag_mp_wraith_voices_hostiles_urgent_02_02_1p.mp3",
+        "diag_mp_wraith_voices_hostiles_urgent_03_01_1p.mp3",
+        "diag_mp_wraith_voices_hostiles_urgent_03_02_1p.mp3",
+        "diag_mp_wraith_voices_hostiles_urgent_03_03_1p.mp3",
+        "diag_mp_wraith_voices_hostiles_urgent_04_01_1p.mp3",
+        "diag_mp_wraith_voices_hostiles_urgent_04_02_1p.mp3",
+        "diag_mp_wraith_voices_hostiles_urgent_04_03_1p.mp3",
+        "diag_mp_wraith_voices_hostiles_urgent_05_01_1p.mp3",
+        "diag_mp_wraith_voices_hostiles_urgent_05_02_1p.mp3" }
 }
 
 local cfg = inicfg.load({
@@ -599,18 +609,18 @@ local requestToUnload = false
 -- trying to ulitize aspectRatio property from aimSync
 
 local aspectRatios = {
-    [63] = "5:4", -- 1,25
-    [85] = "4:3", -- 1,333333333333333
-    [98] = "43:18", -- 2,388888888888889
-    [127] = "3:2", -- 1,5
+    [63] = "5:4",    -- 1,25
+    [85] = "4:3",    -- 1,333333333333333
+    [98] = "43:18",  -- 2,388888888888889
+    [127] = "3:2",   -- 1,5
     [143] = "25:16", -- 1,5625
     [153] = "16:10", -- 1,6
-    [169] = "5:3", -- 1,666666666666667
+    [169] = "5:3",   -- 1,666666666666667
     -- [196] = "16:9 (alt)", -- 1,771084337349398
-    [198] = "16:9" -- 1,777777777777778
+    [198] = "16:9"   -- 1,777777777777778
 }
 
-local approximateAspectRatio = {{
+local approximateAspectRatio = { {
     ["start"] = 63 - 11,
     ["end"] = 63 + 11,
     ["value"] = "5:4"
@@ -642,7 +652,7 @@ local approximateAspectRatio = {{
     ["start"] = 198 - 14.5,
     ["end"] = 198 + 14.5,
     ["value"] = "16:9"
-}}
+} }
 
 function getRealAspectRatioByWeirdValue(aspectRatio)
     local hit = false
@@ -786,14 +796,14 @@ function getCurrentWeaponAngle(aspect, weapon)
     end
 
     if (weapon >= 22 and weapon <= 29) or weapon == 32 then
-        return {anglesPerAspectRatio[aspect].curxy, anglesPerAspectRatio[aspect].curz}
+        return { anglesPerAspectRatio[aspect].curxy, anglesPerAspectRatio[aspect].curz }
     elseif weapon == 30 or weapon == 31 then
-        return {anglesPerAspectRatio[aspect].curARxy, anglesPerAspectRatio[aspect].curARz}
+        return { anglesPerAspectRatio[aspect].curARxy, anglesPerAspectRatio[aspect].curARz }
     elseif weapon == 33 then
-        return {anglesPerAspectRatio[aspect].curRFxy, anglesPerAspectRatio[aspect].curRFz}
+        return { anglesPerAspectRatio[aspect].curRFxy, anglesPerAspectRatio[aspect].curRFz }
     end
 
-    return {0.0, 0.0}
+    return { 0.0, 0.0 }
 end
 
 function createTemporaryTracer(tracePed, seconds)
@@ -801,7 +811,6 @@ function createTemporaryTracer(tracePed, seconds)
     while start + seconds > os.clock() do
         wait(0)
         if doesCharExist(tracePed) then
-
             local x, y, z = getCharCoordinates(playerPed)
             local mX, mY, mZ = getCharCoordinates(tracePed)
 
@@ -855,6 +864,7 @@ function getRandomSoundName()
     temp = nil
     return random
 end
+
 local CURRENT_RANDOM_SOUND = getRandomSoundName()
 
 function playMainSoundNow(path)
@@ -875,6 +885,7 @@ function playMainSoundNow(path)
         end
     end
 end
+
 function stopMainSoundNow()
     if mainSoundStream then
         setAudioStreamState(mainSoundStream, as_action.STOP)
@@ -911,7 +922,7 @@ end
 
 function playRandomFromCategory(category)
     local tempSoundPath = getWorkingDirectory() .. "\\resource\\wraith\\" .. cfg.audio.language .. "\\" ..
-                              audioLines[category][math.random(#audioLines[category])]
+        audioLines[category][math.random(#audioLines[category])]
 
     playMainSoundNow(tempSoundPath)
 end
@@ -1020,7 +1031,7 @@ function main()
                                 -- todo fix dry
 
                                 printStyledString(getMessage('phasingStart1') .. key.id_to_name(cfg.tactical.key) ..
-                                                      getMessage('phasingStart2'), 2000, 5)
+                                    getMessage('phasingStart2'), 2000, 5)
                                 if cfg.tactical.key ~= 0x51 or readMemory(getCharPointer(playerPed) + 0x528, 1, false) ==
                                     19 then
                                     wait(200)
@@ -1082,7 +1093,6 @@ function main()
                                     setCurrentCharWeapon(playerPed, weaponToRestore)
                                 end
                             end
-
                         end))
 
                         -- blocking passive because we are underground
@@ -1117,7 +1127,7 @@ function main()
                     local result, ped = sampGetCharHandleBySampPlayerId(data.playerId)
                     if result and sampGetPlayerNickname(data.playerId) == nick then
                         if DEBUG_NEED_AIMLINES.v and data.camMode ~= 4 then
-                            local aspects = {data.realAspect}
+                            local aspects = { data.realAspect }
 
                             if data.realAspect == "16:9" then
                                 aspects[2] = "16:9noWSF"
@@ -1172,7 +1182,7 @@ function main()
             end
 
             if DEBUG_NEED_AIMLINE.v then
-                local aspects = {playerPedAimData.realAspect}
+                local aspects = { playerPedAimData.realAspect }
 
                 if playerPedAimData.realAspect == "16:9" then
                     aspects[2] = "16:9noWSF"
@@ -1253,15 +1263,15 @@ function processAimLine(data, aspect)
     -- NOTE: https://github.com/THE-FYP/MoonAdditions/blob/659eb22d2217fd5870e8e1ead797a2175d314337/src/lua_general.cpp#L353
 
     local p1x = data.camPosX - 2.5 * math.sin(1.5708 + frontAngleZ + currentWeaponAngle[2]) *
-                    math.cos(frontAngleXY + currentWeaponAngle[1])
+        math.cos(frontAngleXY + currentWeaponAngle[1])
     local p1y = data.camPosY - 2.5 * math.sin(1.5708 + frontAngleZ + currentWeaponAngle[2]) *
-                    math.sin(frontAngleXY + currentWeaponAngle[1])
+        math.sin(frontAngleXY + currentWeaponAngle[1])
     local p1z = data.camPosZ - 2.5 * math.cos(1.5708 + frontAngleZ + currentWeaponAngle[2])
 
     local p2x = data.camPosX - 250 * math.sin(1.5708 + frontAngleZ + currentWeaponAngle[2]) *
-                    math.cos(frontAngleXY + currentWeaponAngle[1])
+        math.cos(frontAngleXY + currentWeaponAngle[1])
     local p2y = data.camPosY - 250 * math.sin(1.5708 + frontAngleZ + currentWeaponAngle[2]) *
-                    math.sin(frontAngleXY + currentWeaponAngle[1])
+        math.sin(frontAngleXY + currentWeaponAngle[1])
     local p2z = data.camPosZ - 250 * math.cos(1.5708 + frontAngleZ + currentWeaponAngle[2])
 
     return p1x, p1y, p1z, p2x, p2y, p2z
@@ -1271,7 +1281,7 @@ end
 
 function sampev.onSendAimSync(data)
     if DEBUG.v and DEBUG_NEED_AIMLINE.v and data.camMode ~= 4 and data.camMode ~= 18 then
-        local hit, realAspect = getRealAspectRatioByWeirdValue(data.aspectRatio)
+        local hit, realAspect = getRealAspectRatioByWeirdValue(data[aspectRatioKey])
 
         playerPedAimData = {
             camMode = data.camMode,
@@ -1284,7 +1294,7 @@ function sampev.onSendAimSync(data)
             aimZ = data.aimZ,
             camExtZoom = data.camExtZoom,
             weaponState = data.weaponState,
-            aspectRatio = data.aspectRatio,
+            aspectRatio = data[aspectRatioKey],
 
             realAspectHit = hit,
             realAspect = realAspect,
@@ -1298,7 +1308,7 @@ function sampev.onAimSync(playerId, data)
         local res, char = sampGetCharHandleBySampPlayerId(playerId)
         if res then
             local nick = sampGetPlayerNickname(playerId)
-            local hit, realAspect = getRealAspectRatioByWeirdValue(data.aspectRatio)
+            local hit, realAspect = getRealAspectRatioByWeirdValue(data[aspectRatioKey])
 
             local playerAimData = {
                 camMode = data.camMode,
@@ -1311,7 +1321,7 @@ function sampev.onAimSync(playerId, data)
                 aimZ = data.aimZ,
                 camExtZoom = data.camExtZoom,
                 weaponState = data.weaponState,
-                aspectRatio = data.aspectRatio,
+                aspectRatio = data[aspectRatioKey],
 
                 playerId = playerId,
                 realAspectHit = hit,
@@ -1325,9 +1335,9 @@ function sampev.onAimSync(playerId, data)
 
             -- TODO 27 when cant see ped?
             if (data.camMode ~= 4 and
-                (readMemory(getCharPointer(char) + 0x528, 1, false) == 19 or
-                    readMemory(getCharPointer(char) + 0x528, 1, false) == 27)) or data.camMode == 55 then
-                local aspects = {playerAimData.realAspect}
+                    (readMemory(getCharPointer(char) + 0x528, 1, false) == 19 or
+                        readMemory(getCharPointer(char) + 0x528, 1, false) == 27)) or data.camMode == 55 then
+                local aspects = { playerAimData.realAspect }
 
                 if playerAimData.realAspect == "16:9" then
                     aspects[2] = "16:9noWSF"
@@ -1415,7 +1425,7 @@ end
 
 function playTestSound()
     local tempSoundPath = getWorkingDirectory() .. "\\resource\\wraith\\" .. cfg.audio.language .. "\\" ..
-                              CURRENT_RANDOM_SOUND
+        CURRENT_RANDOM_SOUND
     playMainSoundNow(tempSoundPath)
 end
 
@@ -1493,7 +1503,7 @@ function imgui.OnDrawFrame()
         if TACTICAL_ENABLE.v then
             imgui.TextColored(imgui.ImColor(255, 0, 0, 255):GetVec4(), u8:encode(getMessage('tacticalCheatWarning')))
             if imgui.Button(u8:encode(getMessage("tacticalHotkey") .. (TACTICAL_LMENU.v and "LEFT ALT + " or "") ..
-                                          key.id_to_name(cfg.tactical.key))) then
+                    key.id_to_name(cfg.tactical.key))) then
                 main_window_state.v = false
                 table.insert(tempThreads, lua_thread.create(function()
                     sampShowDialog(767, getMessage('legacyChangeKeyTitle'), getMessage('legacyChangeKeyText'),
@@ -1509,8 +1519,8 @@ function imgui.OnDrawFrame()
                             for i = 1, 200 do
                                 if isKeyDown(i) then
                                     sampAddChatMessage(getMessage('legacyChangeKeySuccess') ..
-                                                           (TACTICAL_LMENU.v and "LEFT ALT + " or "") ..
-                                                           key.id_to_name(i), -1)
+                                        (TACTICAL_LMENU.v and "LEFT ALT + " or "") ..
+                                        key.id_to_name(i), -1)
                                     cfg.tactical.key = i
                                     addOneOffSound(0.0, 0.0, 0.0, 1052)
                                     saveCfg()
@@ -1551,7 +1561,7 @@ function imgui.OnDrawFrame()
 
         imgui.PushItemWidth(200)
         if imgui.Combo(u8:encode(getMessage('settingAudioLanguage')), AUDIO_LANGUAGE,
-            i18n.audioLangTable[cfg.options.language], 10) then
+                i18n.audioLangTable[cfg.options.language], 10) then
             cfg.audio.language = audioLanguages[AUDIO_LANGUAGE.v + 1]
             playTestSound()
             saveCfg()
