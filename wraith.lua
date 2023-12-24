@@ -271,12 +271,29 @@ local i18n = {
         },
 
         sectionDebug = {
-            en = "Debug (on/off debug)",
-            ru = "Debug (вкл/выкл отладки)"
+            en = "Debug (better to use special debug scripts)",
+            ru = "Debug (лучше использовать отдельные дебаг скрипты)"
         },
         settingDebug = {
-            en = "Enable debug",
-            ru = "Включить отладку"
+            en = "Enable debug.",
+            ru = "Включить функции дебага."
+        },
+
+        settingDebugScriptDesc = {
+            en = "debug features have been optimized and moved to separate scripts:",
+            ru = "функции отладки были оптимизированы и вынесены в отдельные скрипты"
+        },
+        debugScriptXiaomi = {
+            en = "Open script for debugging the aspect ratio determination snippet",
+            ru = "Открыть скрипт для отладки определения соотношений сторон"
+        },
+        debugScriptAimline = {
+            en = "Open script for debugging the aimline snippet",
+            ru = "Открыть скрипт для отладки aimline сниппета"
+        },
+        settingDebugScriptDesc2 = {
+            en = "old debug features:",
+            ru = "устаревшие инструменты отладки:"
         },
         tooltipSettingDebug = {
             en =
@@ -606,6 +623,8 @@ local playerPedAimData = false
 
 local requestToUnload = false
 
+-- the aspect ratio snippet is being worked on here:  https://www.blast.hk/threads/198256/ https://github.com/qrlk/wraith-xiaomi
+
 -- trying to ulitize aspectRatio property from aimSync
 
 local aspectRatios = {
@@ -704,6 +723,8 @@ end
 
 -- thi debug ini is not saved by default and formally loads for debugging purposes only
 -- if the values change in possible updates, the name of the .ini file will be changed
+
+-- the aimline snipper is being worked on here: https://www.blast.hk/threads/198312/ https://github.com/qrlk/wraith-aimlined
 
 local angelsIniFileName = "wraith-debug-20231219"
 local anglesPerAspectRatio = inicfg.load({
@@ -1420,6 +1441,7 @@ function openLink(link)
     local shell32 = ffi.load 'Shell32'
     local ole32 = ffi.load 'Ole32'
     ole32.CoInitializeEx(nil, 2 + 4) -- COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE
+    sampAddChatMessage("opening link in your browser: " .. link, -1)
     print(shell32.ShellExecuteA(nil, 'open', link, nil, nil, 1))
 end
 
@@ -1468,7 +1490,7 @@ function imgui.OnDrawFrame()
         imgui.TextWrapped(u8:encode(getMessage('description')))
 
         if imgui.Button(u8:encode(getMessage('moreAboutScript'))) then
-            openLink("https://github.com/qrlk/wraith.lua")
+            openLink("https://www.blast.hk/threads/198111/")
         end
 
         if imgui.Button(u8:encode(getMessage('moreAboutSC'))) then
@@ -1605,6 +1627,20 @@ function imgui.OnDrawFrame()
         imgui.Text(u8:encode(getMessage('sectionDebug')))
         createImguiCheckbox(DEBUG, 'options', 'debug', 'settingDebug', 'tooltipSettingDebug')
         if DEBUG.v then
+            imgui.Text(u8:encode(getMessage('settingDebugScriptDesc')))
+
+            --xiaomi
+            if imgui.Button(u8:encode(getMessage('debugScriptXiaomi'))) then
+                openLink("https://www.blast.hk/threads/198256/")
+            end
+            --aimline
+            if imgui.Button(u8:encode(getMessage('debugScriptAimline'))) then
+                openLink("https://www.blast.hk/threads/198312/")
+            end
+
+            imgui.Text(u8:encode(getMessage('settingDebugScriptDesc2')))
+
+
             createImguiCheckbox(DEBUG_NEED_AIMLINES, 'options', 'debugNeedAimLines', 'settingDebugNeedAimLines',
                 'tooltipSettingDebugNeedAimLines')
             if DEBUG_NEED_AIMLINES.v then
