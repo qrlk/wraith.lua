@@ -53,6 +53,19 @@ local memory = require("memory")
 local encoding = require "encoding"
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
+
+
+local ffi = require("ffi")
+ffi.cdef[[
+    typedef struct _LANGID {
+        unsigned short wLanguage;
+        unsigned short wReserved;
+    } LANGID;
+    
+    LANGID GetUserDefaultLangID();
+]]
+
+local defaultLanguage = ffi.C.GetUserDefaultLangID().wLanguage==1049 and "ru" or "en"
 --
 
 -- cringe internalization solution
@@ -506,7 +519,7 @@ local audioLines = {
 local cfg = inicfg.load({
     options = {
         welcomeMessage = true,
-        language = "ru",
+        language = defaultLanguage,
         debug = false,
         debugNeedAimLines = true,
         debugNeedAimLinesFull = true,
@@ -520,7 +533,7 @@ local cfg = inicfg.load({
         debugNeedToSaveAngles = false
     },
     audio = {
-        language = "ru",
+        language = defaultLanguage,
         volume = 5,
         quietOffset = 5,
         noRadio = false,
