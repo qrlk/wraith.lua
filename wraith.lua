@@ -477,7 +477,6 @@ local cfg = inicfg.load({
         debugNeedAimLines = true,
         debugNeedAimLinesFull = true,
         debugNeedAimLinesLOS = true,
-        debugNeed3dtext = true,
         debugNeedAimLine = true,
         debugNeedAimLineFull = true,
         debugNeedAimLineLOS = true,
@@ -529,7 +528,6 @@ local DEBUG_NEED_TO_EMULATE_CAMERA_BY_ID = 3
 local DEBUG_ENABLE_WEATHER_BROWSE = false
 --
 
-local debug3dText = {}
 
 local tempThreads = {}
 
@@ -1111,7 +1109,7 @@ function main()
             end
         end
 
-        if cfg.options.debug and (cfg.options.debugNeedAimLines or cfg.options.debugNeed3dtext) then
+        if cfg.options.debug and (cfg.options.debugNeedAimLines) then
             for nick, data in pairs(playersAimData) do
                 if sampIsPlayerConnected(data.playerId) then
                     local result, ped = sampGetCharHandleBySampPlayerId(data.playerId)
@@ -1142,26 +1140,11 @@ function main()
                             end
                         end
 
-                        if cfg.options.debug and cfg.options.debugNeed3dtext and debug3dText[nick] == nil then
-                            local text = string.format("%s, %s, hit: %s", os.clock(), data.realAspect,
-                                data.realAspectHit)
-                            local sampTextId = sampCreate3dText(text, 0xFFFFFFFF, 0.0, 0.0, 0.02, 10.0, false,
-                                data.playerId, -1)
-                            debug3dText[nick] = sampTextId
-                        end
                     else
                         playersAimData[nick] = nil
-                        if debug3dText[nick] ~= nil then
-                            sampDestroy3dText(debug3dText[nick])
-                            debug3dText[nick] = nil
-                        end
                     end
                 else
                     playersAimData[nick] = nil
-                    if debug3dText[nick] ~= nil then
-                        sampDestroy3dText(debug3dText[nick])
-                        debug3dText[nick] = nil
-                    end
                 end
             end
         end
@@ -1382,7 +1365,7 @@ function sampev.onAimSync(playerId, data)
                 weapon = getCurrentCharWeapon(char)
             }
 
-            if cfg.options.debug and (cfg.options.debugNeedAimLines or cfg.options.debugNeed3dtext) then
+            if cfg.options.debug and (cfg.options.debugNeedAimLines) then
                 playersAimData[nick] = playerAimData
             end
 
@@ -1543,13 +1526,6 @@ function processDebugOffset(aspect, weapon)
             saveDebugIniIfNeeded()
             wait(100)
         end
-    end
-end
-
--- cleanup
-function onScriptTerminate(LuaScript, quitGame)
-    for k, v in pairs(debug3dText) do
-        sampDestroy3dText(v)
     end
 end
 
