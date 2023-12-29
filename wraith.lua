@@ -47,31 +47,28 @@ local font_flag = require('moonloader').font_flag
 local as_action = require('moonloader').audiostream_state
 local my_font = renderCreateFont('Verdana', 12, font_flag.BOLD + font_flag.SHADOW)
 
-local imgui = require 'imgui'
-local memory = require("memory")
-
-local encoding = require "encoding"
-encoding.default = 'CP1251'
-local u8 = encoding.UTF8
-
-
 local ffi = require("ffi")
-ffi.cdef[[
+ffi.cdef [[
     typedef struct _LANGID {
         unsigned short wLanguage;
         unsigned short wReserved;
     } LANGID;
-    
+
     LANGID GetUserDefaultLangID();
 ]]
 
-local defaultLanguage = ffi.C.GetUserDefaultLangID().wLanguage==1049 and "ru" or "en"
+local defaultLanguage = ffi.C.GetUserDefaultLangID().wLanguage == 1049 and "ru" or "en"
 --
 
 -- cringe internalization solution
 
 local i18n = {
     data = {
+        pleaseUpdateMoonloader = {
+            en =
+            "wraith.lua - we support only moonloader v26+. Update today: https://www.blast.hk/moonloader/download.php",
+            ru = "wraith.lua - у вас слишком старый moonloader. Обновить: https://www.blast.hk/moonloader/download.php"
+        },
         welcomeMessage = {
             en = "{348cb2}wraith.lua v" .. thisScript().version ..
                 " activated! {7ef3fa}/wraith - menu. {348cb2}</> by qrlk for {7ef3fa}BLASTHACK.NET{348cb2} SC23 competition.",
@@ -85,10 +82,9 @@ local i18n = {
             ru =
             "{348cb2}wraith.lua не может воспроизводить звуки. {7ef3fa}Увеличьте громкость радио в настройках и перезайдите в игру."
         },
-
-        radioDisabledWarningImgui = {
-            en = "Increase the radio volume in settings and restart the game.",
-            ru = "Увеличьте громкость радио в настройках и перезайдите в игру."
+        desc = {
+            en = "About the script",
+            ru = "Информация о скрипте"
         },
 
         changeLang = {
@@ -102,14 +98,10 @@ local i18n = {
         },
 
         langChanged = {
-            en = "English",
-            ru = "Russian"
+            en = "LANG: English",
+            ru = "LANG: Russian"
         },
 
-        sectionAbout = {
-            en = "About",
-            ru = "Описание"
-        },
         description = {
             en =
             "wraith.lua is a cheat for SA:MP that implements some abilities of Wraith from Apex Legends.\n\nThis script was written by qrlk for the BLASTHACK community and the SC23 competition.",
@@ -123,21 +115,13 @@ local i18n = {
         },
 
         moreAboutSC = {
-            en = "More about SC23",
-            ru = "Подробнее о SC23"
+            en = "More about BLASTHACK SC23",
+            ru = "Подробнее о BLASTHACK SC23"
         },
 
-        sectionTweaks = {
-            en = "Settings",
-            ru = "Общие настройки"
-        },
         settingWelcomeMessage = {
             en = "Show welcome message",
             ru = "Показывать вступительное сообщение"
-        },
-        tooltipSettingWelcomeMessage = {
-            en = "If enabled, a welcome message will appear in the chat when the script is launched.",
-            ru = "Если включено, при запуске скрипта в чате появится приветственное сообщение."
         },
 
         sectionAudio = {
@@ -149,20 +133,33 @@ local i18n = {
             en = "Block radio selection in vehicles",
             ru = "Блокировать выбор радио в машине"
         },
-        tooltipSettingNoRadio = {
-            en =
-            "Turns off the radio in the car if it bothers you.\nAfter changing the setting, you need to restart the game.",
-            ru = "Выключает радио в машине, если оно вам мешает.\nПосле изменения настройки нужен перезапуск игры."
+        checkAudioOff = {
+            en = "radio off",
+            ru = "радио выключено"
         },
-
+        checkAudioOffNeedReboot = {
+            en = "radio on, pls restart the game",
+            ru = "радио вкл, но надо перезайти в игру"
+        },
+        checkAudioOn = {
+            en = "radio",
+            ru = "радио"
+        },
+        checkResourcesYes = {
+            en = "resources",
+            ru = "ресурсы"
+        },
+        checkResourcesNo = {
+            en = "resources not found",
+            ru = "ресурсы не найдены"
+        },
+        settingAudioEnable = {
+            en = "Enable audio effects",
+            ru = "Включить аудиоэффекты"
+        },
         settingIgnoreMissing = {
             en = "Ignore missing sounds",
             ru = "Игнорировать ненайденные звуки"
-        },
-        tooltipSettingIgnoreMissing = {
-            en = "Enable this setting to remove the chat warning that audio was not found when attempting to play.",
-            ru =
-            "Включите эту настройку, чтобы убрать предупреждение в чате, что звук при попытке воспроизведения не был найден."
         },
 
         settingAudioLanguage = {
@@ -170,52 +167,84 @@ local i18n = {
             ru = "Язык аудио"
         },
         settingVolume = {
-            en = "Volume",
-            ru = "Громкость"
+            en = "Base sound volume",
+            ru = "Базовая громкость звуков"
+        },
+        lang = {
+            en = "Audio lang: ",
+            ru = "Язык аудио: "
+        },
+        settingVolumeCaption = {
+            en = "Set preffered volume. Use your keyboard arrows.",
+            ru = "Настройка громкости. Используйте стрелки клавиатуры."
         },
 
         settingVolumeQuietOffset = {
             en = "Increased volume for quiet sounds",
-            ru = "Увеличение громкости для тихих звуков"
+            ru = "Увеличение для тихих звуков"
+        },
+        settingVolumeQuietOffsetCaption = {
+            en = "Set preffered volume. Use your keyboard arrows.",
+            ru = "Настройка громкости. Используйте стрелки клавиатуры."
         },
 
         randomSound = {
-            en = "Random sound: ",
-            ru = "Случайная реплика: "
+            en = "Example: ",
+            ru = "Пример: "
         },
 
         sectionPassive = {
-            en = "Passive ability - Voices from the Void",
-            ru = "Пассивная способность - Голоса из Пустоты"
+            en = "{808000}Passive ability - Voices from the Void",
+            ru = "{808000}Пассивная способность - Голоса из Пустоты"
         },
-        settingPassiveEnable = {
-            en = "Enable passive ability",
-            ru = "Включить пассивную способность"
+
+        settingPassive = {
+            en = "Voices from the Void {00ff00}(undetectable cheat){ffffff}",
+            ru = "Голоса из Пустоты {00ff00}(беспалевный чит){ffffff}"
         },
+        --todo
         tooltipSettingPassiveEnable = {
             en = "A voice warns you when danger approaches.\nAs far as you can tell, it's on your side.",
             ru = "Некий голос всегда предупреждает вас об опасности.\nСудя по всему, этот голос на вашей стороне."
         },
+
+        settingPassiveSection = {
+            en = "Passive Ability Settings",
+            ru = "Настройки пассивной способности"
+        },
+
+        passiveActivationMode = {
+            en = "Activation: ",
+            ru = "Активация: "
+        },
+
+        passiveActivationEnabled = {
+            en = "automatic",
+            ru = "автоматическая"
+        },
+
+        passiveActivationDisabled = {
+            en = "ability disabled",
+            ru = "способность отключена"
+        },
+
         settingPassiveTracer = {
             en = "Show temporary tracer to enemy when ability is triggered",
-            ru = "Показывать временный трасер до противника при активации"
-        },
-        tooltipSettingPassiveTracer = {
-            en = "",
-            ru = ""
+            ru = "Показывать временный трасер"
         },
         settingPassiveString = {
             en = "Show gametext warning when ability is triggered",
-            ru = "Показывать игровую строку-предупреждение при триггере голоса из пустоты"
-        },
-        tooltipSettingPassiveString = {
-            en = "",
-            ru = ""
+            ru = "Показывать gametext строку"
         },
 
         settingPassiveCooldown = {
-            en = "passive ability cooldown (in seconds)",
-            ru = "кулдаун пассивной способности (в сек.)"
+            en = "Passive ability cooldown (in seconds)",
+            ru = "Кулдаун пассивной способности (в сек.)"
+        },
+
+        settingPassiveCooldownCaption = {
+            en = "Set passive cooldown. Use your keyboard arrows.",
+            ru = "Настройка кулдауна пассивной. Используйте стрелки клавиатуры."
         },
 
         tacticalUnderZWarning = {
@@ -224,45 +253,36 @@ local i18n = {
         },
 
         sectionTactical = {
-            en = "Tactical ability - Into the Void",
-            ru = "Тактическая способность - В Пустоту"
+            en = "{808000}Tactical ability - Into the Void",
+            ru = "{808000}Тактическая способность - В Пустоту"
         },
 
-        settingTacticalEnable = {
-            en = "Enable tactical ability",
-            ru = "Включить тактическую способность"
+        settingTactical = {
+            en = "Into the Void {ff0000}(easily detectable cheat){ffffff}",
+            ru = "В Пустоту {ff0000}(очень палевный чит){ffffff}"
         },
+        --todo
         tooltipSettingTacticalEnable = {
             en = "Reposition quickly through the safety of void space, avoiding all damage.",
             ru = "Быстро перемещает вас сквозь Пустоту, позволяя избежать урона."
         },
 
         settingTacticalAlt = {
-            en = "Need to press left alt + the configured button to trigger",
-            ru = "Нужно нажать левый альт + заданную кнопку для активации"
-        },
-        tooltipSettingTacticalAlt = {
-            en = "If active, to trigger, in addition to the main key, you will need to hold the left alt.",
-            ru = "Если активно, для активации помимо основной клавиши нужно будет держать левый альт."
+            en = "Need to press LEFT ALT to activate",
+            ru = "Нужно зажать LEFT ALT для активации"
         },
 
+        settingTacticalSection = {
+            en = "Tactical Ability Settings",
+            ru = "Настройки тактической способности"
+        },
+        settingTacticalCooldownCaption = {
+            en = "Set tactical cooldown. Use your keyboard arrows.",
+            ru = "Настройка кулдауна тактической. Используйте стрелки клавиатуры."
+        },
         settingTacticalInstant = {
             en = "Remove delay before activation",
             ru = "Убрать задержку перед активацией"
-        },
-        tooltipSettingTacticalInstant = {
-            en =
-            "If active, there will be no delay before activation - but you will not be able to cancel the ability's activation.",
-            ru = "Если активно, задержки перед активацией не будет - но вы не сможете отменить запуск способности."
-        },
-
-        tacticalCheatWarning = {
-            en = "Attention! This is a cheat! Turn the ability off if you don't know what you're doing.",
-            ru = "Внимание! Это чит! Отключите способность, если не понимаете что делаете."
-        },
-        tacticalHotkey = {
-            en = "Hotkey to trigger: ",
-            ru = "Кнопка активации: "
         },
 
         phasingStart1 = {
@@ -279,130 +299,48 @@ local i18n = {
         },
 
         settingTacticalCooldown = {
-            en = "ability cooldown (in seconds)",
-            ru = "кулдаун способности (в сек.)"
+            en = "Tactical ability cooldown (in seconds)",
+            ru = "Кулдаун тактической способности (в сек.)"
         },
 
-        sectionDebug = {
-            en = "Debug (better to use special debug scripts)",
-            ru = "Debug (лучше использовать отдельные дебаг скрипты)"
-        },
-        settingDebug = {
-            en = "Enable debug.",
-            ru = "Включить функции дебага."
-        },
-
-        settingDebugScriptDesc = {
-            en = "debug features have been optimized and moved to separate scripts:",
-            ru = "функции отладки были оптимизированы и вынесены в отдельные скрипты"
-        },
         debugScriptXiaomi = {
-            en = "Open script for debugging the aspect ratio determination snippet",
-            ru = "Открыть скрипт для отладки определения соотношений сторон"
+            en = "Open wraith-xiaomi thread (RU)",
+            ru = "Открыть wraith-xiaomi "
         },
         debugScriptAimline = {
-            en = "Open script for debugging the aimline snippet",
-            ru = "Открыть скрипт для отладки aimline сниппета"
-        },
-        settingDebugScriptDesc2 = {
-            en = "old debug features:",
-            ru = "устаревшие инструменты отладки:"
-        },
-        tooltipSettingDebug = {
-            en =
-            "Gives access to debugging features. Playing with debugging enabled is not recommended;\ndebugging tools are not optimized for performance.",
-            ru =
-            "Даёт доступ к отладочным функциям. Играть с включенной отладкой не рекомендуются,\nинструменты отладки не оптимизированы по производительности."
+            en = "Open wraith-aimline thread (RU)",
+            ru = "Открыть wraith-aimline"
         },
 
-        settingDebugNeedAimLines = {
-            en = "Activate aimSync recording for all players",
-            ru = "Активировать функционал записи данных прицела у всех игроков"
+        openGithub = {
+            en = "Open GitHub",
+            ru = "Открыть GitHub"
         },
-        tooltipSettingDebugNeedAimLines = {
-            en = "",
-            ru = ""
+        sectionLinks = {
+            en = "{AAAAAA}Links",
+            ru = "{AAAAAA}Ссылки"
         },
-
-        settingDebugNeedAimLinesFull = {
-            en = "Render of the full aimline for all players",
-            ru = "Рендер полной линии прицела у всех игроков"
+        sectionMisc = {
+            en = "{AAAAAA}Misc",
+            ru = "{AAAAAA}Разное"
         },
-        tooltipSettingDebugNeedAimLinesFull = {
-            en = "",
-            ru = ""
-        },
-
-        settingDebugNeedAimLinesLOS = {
-            en = "Render aimline to collision for all players",
-            ru = "Рендер линии прицела до столкновения у всех игроков"
-        },
-        tooltipSettingDebugNeedAimLinesLOS = {
-            en = "",
-            ru = ""
+        sectionSettings = {
+            en = "{AAAAAA}Settings",
+            ru = "{AAAAAA}Настройки"
         },
 
-        settingDebugNeed3dtext = {
-            en = "Create 3D text on peds with their GTA aspect ratio",
-            ru = "Создавать 3д текст на игроках с соотношением сторон их гта"
+        tacticalActivationMode = {
+            en = "Activation: ",
+            ru = "Активация: "
         },
-        tooltipSettingDebugNeed3dtext = {
-            en = "",
-            ru = ""
-        },
-
-        settingDebugNeedAimLine = {
-            en = "Activate aimSync recording for you",
-            ru = "Активировать функционал записи данных прицела у вашего персонажа"
-        },
-        tooltipSettingDebugNeedAimLine = {
-            en = "",
-            ru = ""
+        tacticalActivationDisabled = {
+            en = "ability disabled",
+            ru = "способность отключена"
         },
 
-        settingDebugNeedAimLineFull = {
-            en = "Render your character's full aimline",
-            ru = "Рендер полной линии прицела у вашего персонажа"
-        },
-        tooltipSettingDebugNeedAimLineFull = {
-            en = "",
-            ru = ""
-        },
-
-        settingDebugNeedAimLineLOS = {
-            en = "Render the aimline to the collision for your character",
-            ru = "Рендер линии прицела до столкновения у вашего персонажа"
-        },
-        tooltipSettingDebugNeedAimLineLOS = {
-            en = "",
-            ru = ""
-        },
-
-        settingDebugNeedDrawAngles = {
-            en = "Render current angle",
-            ru = "Рендерит текущие углы"
-        },
-        tooltipSettingDebugNeedDrawAngles = {
-            en = "",
-            ru = ""
-        },
-
-        settingNeedToTweakAngles = {
-            en = "Need to tweak angles",
-            ru = "Нужно изменять углы"
-        },
-        tooltipSettingNeedToTweakAngles = {
-            en = "Activates changing weapon angles via alt + keyboard arrows",
-            ru = "Активирует изменение углов оружия через alt + стрелки клавиатуры"
-        },
-
-        settingNeedToSaveAnglesIni = {
-            en = "Save angles",
-            ru = "Сохранять измененные углы"
-        },
-        tooltipSettingNeedToSaveAnglesIni = {
-            en = "don't touch pls",
-            ru = "не трогайте"
+        tacticalKeyName = {
+            en = "Main key for activation: ",
+            ru = "Основная кнопка для активации: "
         },
 
         legacyChangeKeyTitle = {
@@ -437,14 +375,29 @@ local i18n = {
         pleaseDownloadResources = {
             en = 'Download the resources from http://qrlk.me/wraith and place them in your moonloader folder!',
             ru = 'Скачайте архив с ресурсами с http://qrlk.me/wraith и поместите в папку moonloader!'
+        },
+
+        button1 = {
+            en = "Select",
+            ru = "Выбрать"
+        },
+
+        button2 = {
+            en = "Close",
+            ru = "Закрыть"
+        },
+
+        button3 = {
+            en = "Back",
+            ru = "Назад"
         }
 
     },
     audioLangTable = {
         en = { 'English', 'Russian', 'French', 'Italian', 'German', 'Spanish', 'Japanese', 'Korean', 'Polish', 'Chinese' },
-        ru = { u8 'Английский', u8 'Русский', u8 'Французский', u8 'Итальянский',
-            u8 'Немецкий', u8 'Испанский', u8 'Японский', u8 'Корейский',
-            u8 'Польский', u8 'Китайский' }
+        ru = { 'Английский', 'Русский', 'Французский', 'Итальянский',
+            'Немецкий', 'Испанский', 'Японский', 'Корейский',
+            'Польский', 'Китайский' }
     }
 }
 
@@ -534,6 +487,7 @@ local cfg = inicfg.load({
     },
     audio = {
         language = defaultLanguage,
+        enable = true,
         volume = 5,
         quietOffset = 5,
         noRadio = false,
@@ -567,48 +521,7 @@ end
 
 saveCfg()
 
-local main_window_state = imgui.ImBool(false)
--- local main_window_state = imgui.ImBool(true)
-
-local welcomeMessage = imgui.ImBool(cfg.options.welcomeMessage)
-
 --
-local DEBUG = imgui.ImBool(cfg.options.debug)
-
-local DEBUG_NEED_AIMLINES = imgui.ImBool(cfg.options.debugNeedAimLines)
-local DEBUG_NEED_AIMLINES_FULL = imgui.ImBool(cfg.options.debugNeedAimLinesFull)
-local DEBUG_NEED_AIMLINES_LOS = imgui.ImBool(cfg.options.debugNeedAimLinesLOS)
-local DEBUG_NEED_3DTEXT = imgui.ImBool(cfg.options.debugNeed3dtext)
-
-local DEBUG_NEED_AIMLINE = imgui.ImBool(cfg.options.debugNeedAimLine)
-local DEBUG_NEED_AIMLINE_FULL = imgui.ImBool(cfg.options.debugNeedAimLineFull)
-local DEBUG_NEED_AIMLINE_LOS = imgui.ImBool(cfg.options.debugNeedAimLineLOS)
-
-local DEBUG_NEED_DRAW_ANGLES = imgui.ImBool(cfg.options.debugNeedToDrawAngles)
-local DEBUG_NEED_TO_TWEAK_ANGLES = imgui.ImBool(cfg.options.debugNeedToTweakAngles)
-local DEBUG_NEED_TO_SAVE_ANGLES_INI = imgui.ImBool(cfg.options.debugNeedToSaveAngles)
-
-local NO_RADIO = imgui.ImBool(cfg.audio.noRadio)
-local AUDIO_VOLUME = imgui.ImInt(cfg.audio.volume)
-local AUDIO_VOLUME_QUIET_OFFSET = imgui.ImInt(cfg.audio.quietOffset)
-
-local AUDIO_IGNORE_MISSING_RESOURCES = imgui.ImBool(cfg.audio.ignoreMissing)
-local AUDIO_LANGUAGE = imgui.ImInt(0)
-for k, v in pairs(audioLanguages) do
-    if v == cfg.audio.language then
-        AUDIO_LANGUAGE.v = k - 1
-    end
-end
-
-local PASSIVE_ENABLE = imgui.ImBool(cfg.passive.enable)
-local PASSIVE_TRACER = imgui.ImBool(cfg.passive.showTempTracer)
-local PASSIVE_STRING = imgui.ImBool(cfg.passive.printStyledString)
-local PASSIVE_COOLDOWN = imgui.ImInt(cfg.passive.cooldown)
-
-local TACTICAL_ENABLE = imgui.ImBool(cfg.tactical.enable)
-local TACTICAL_COOLDOWN = imgui.ImInt(cfg.tactical.cooldown)
-local TACTICAL_LMENU = imgui.ImBool(cfg.tactical.alt)
-local TACTICAL_INSTANT = imgui.ImBool(cfg.tactical.instant)
 
 local DEBUG_NEED_TO_EMULATE_CAMERA = false
 local DEBUG_NEED_TO_EMULATE_CAMERA_BY_ID = 3
@@ -865,22 +778,22 @@ function triggerPassive(typ, enemyPed)
             local dist = math.floor(getDistanceBetweenCoords3d(x, y, z, mX, mY, mZ))
             if typ == "aiming" then
                 playRandomFromCategory('aiming')
-                if PASSIVE_STRING.v then
+                if cfg.passive.printStyledString then
                     printStyledString(string.format("AIMED by %s [%s] (%sm)", nick, id, dist), 5000, 5)
                 end
             elseif typ == "sniper" then
                 playRandomFromCategory('sniper')
-                if PASSIVE_STRING.v then
+                if cfg.passive.printStyledString then
                     printStyledString(string.format("SNIPER!!! %s [%s] (%sm)", nick, id, dist), 3000, 5)
                 end
             elseif typ == "vehicle" then
                 playRandomFromCategory('vehicle')
-                if PASSIVE_STRING.v then
+                if cfg.passive.printStyledString then
                     printStyledString(string.format("DANGER!!! %s [%s] (%sm)", nick, id, dist), 3000, 5)
                 end
             end
 
-            if PASSIVE_TRACER.v and enemyPed then
+            if cfg.passive.showTempTracer and enemyPed then
                 table.insert(tempThreads, lua_thread.create(createTemporaryTracer, enemyPed, 5))
             end
         end
@@ -902,20 +815,22 @@ end
 local CURRENT_RANDOM_SOUND = getRandomSoundName()
 
 function playMainSoundNow(path)
-    stopMainSoundNow()
-    if doesFileExist(path) then
-        mainSoundStream = loadAudioStream(path)
-        if cfg.audio.volume ~= 0 and string.find(path, "wraith_voices") then
-            setAudioStreamVolume(mainSoundStream, cfg.audio.volume + cfg.audio.quietOffset)
-        else
-            setAudioStreamVolume(mainSoundStream, cfg.audio.volume)
-        end
+    if cfg.audio.enable then
+        stopMainSoundNow()
+        if doesFileExist(path) then
+            mainSoundStream = loadAudioStream(path)
+            if cfg.audio.volume ~= 0 and string.find(path, "wraith_voices") then
+                setAudioStreamVolume(mainSoundStream, cfg.audio.volume + cfg.audio.quietOffset)
+            else
+                setAudioStreamVolume(mainSoundStream, cfg.audio.volume)
+            end
 
-        setAudioStreamState(mainSoundStream, as_action.PLAY)
-    else
-        if not AUDIO_IGNORE_MISSING_RESOURCES.v then
-            sampAddChatMessage(getMessage('cantFindResources') .. path, -1)
-            sampAddChatMessage(getMessage('pleaseDownloadResources'), -1)
+            setAudioStreamState(mainSoundStream, as_action.PLAY)
+        else
+            if not cfg.audio.ignoreMissing then
+                sampAddChatMessage(getMessage('cantFindResources') .. path, -1)
+                sampAddChatMessage(getMessage('pleaseDownloadResources'), -1)
+            end
         end
     end
 end
@@ -928,22 +843,24 @@ end
 
 -- todo fix dry
 function playReserveSoundNow(path)
-    stopReserveSoundNow()
-    if doesFileExist(path) then
-        reserveSoundStream = loadAudioStream(path)
-        if cfg.audio.volume ~= 0 and
-            (string.find(path, "wraith_voices") or string.find(path, "tactical.mp3") or
-                string.find(path, "tactical_instant.mp3")) then
-            setAudioStreamVolume(reserveSoundStream, cfg.audio.volume + cfg.audio.quietOffset)
-        else
-            setAudioStreamVolume(reserveSoundStream, cfg.audio.volume)
-        end
+    if cfg.audio.enable then
+        stopReserveSoundNow()
+        if doesFileExist(path) then
+            reserveSoundStream = loadAudioStream(path)
+            if cfg.audio.volume ~= 0 and
+                (string.find(path, "wraith_voices") or string.find(path, "tactical.mp3") or
+                    string.find(path, "tactical_instant.mp3")) then
+                setAudioStreamVolume(reserveSoundStream, cfg.audio.volume + cfg.audio.quietOffset)
+            else
+                setAudioStreamVolume(reserveSoundStream, cfg.audio.volume)
+            end
 
-        setAudioStreamState(reserveSoundStream, as_action.PLAY)
-    else
-        if not AUDIO_IGNORE_MISSING_RESOURCES.v then
-            sampAddChatMessage(getMessage('cantFindResources') .. path, -1)
-            sampAddChatMessage(getMessage('pleaseDownloadResources'), -1)
+            setAudioStreamState(reserveSoundStream, as_action.PLAY)
+        else
+            if not cfg.audio.ignoreMissing then
+                sampAddChatMessage(getMessage('cantFindResources') .. path, -1)
+                sampAddChatMessage(getMessage('pleaseDownloadResources'), -1)
+            end
         end
     end
 end
@@ -961,8 +878,21 @@ function playRandomFromCategory(category)
     playMainSoundNow(tempSoundPath)
 end
 
+local radio_were_disabled = false
+
+local phasingSoundPath = getWorkingDirectory() .. "\\resource\\wraith\\tactical.mp3"
+local phasingInstantSoundPath = getWorkingDirectory() .. "\\resource\\wraith\\tactical_instant.mp3"
+
 function main()
-    if not isSampfuncsLoaded() or not isSampLoaded() then
+    if not isCleoLoaded() then
+        printStyledString('wraith.lua: pls install cleo', 5000, 2)
+        return
+    end
+    if not isSampfuncsLoaded() then
+        printStyledString('wraith.lua: pls install sampfuncs', 5000, 5)
+        return
+    end
+    if not isSampLoaded() then
         return
     end
     while not isSampAvailable() do
@@ -975,7 +905,20 @@ function main()
     end
     -- вырежи тут, если хочешь отключить проверку обновлений
 
+    if getMoonloaderVersion() < 26 then
+        sampAddChatMessage(getMessage('pleaseUpdateMoonloader'), -1)
+        local str = "You must update moonloader if you want to use wraith.lua"
+        printStyledString(str, 10000, 2)
+        printStyledString(str, 10000, 5)
+        thisScript():unload()
+        wait(-1)
+    end
+
     -- sc23
+
+    if getVolume().radio == 0 then
+        radio_were_disabled = true
+    end
 
     if DEBUG_ENABLE_WEATHER_BROWSE then
         local weather = 478
@@ -1011,14 +954,21 @@ function main()
         end
     end
 
-    local phasingSoundPath = getWorkingDirectory() .. "\\resource\\wraith\\tactical.mp3"
-    local phasingInstantSoundPath = getWorkingDirectory() .. "\\resource\\wraith\\tactical_instant.mp3"
-
     sampRegisterChatCommand('wraith', function()
-        main_window_state.v = not main_window_state.v
+        table.insert(tempThreads, lua_thread.create(function()
+            if cfg.audio.enable and cfg.options.welcomeMessage then
+                if not checkAudioResources() then
+                    sampAddChatMessage(getMessage('pleaseDownloadResources'), -1)
+                end
+                if getVolume().radio == 0 and cfg.audio.volume ~= 0 then
+                    sampAddChatMessage(getMessage('radioDisabledWarning'), 0x7ef3fa)
+                end
+            end
+            callMenu()
+        end))
     end)
 
-    apply_custom_style()
+    sampProcessChatInput('/wraith')
 
     while sampGetCurrentServerName() == "SA-MP" do
         wait(500)
@@ -1026,28 +976,34 @@ function main()
     if cfg.options.welcomeMessage then
         sampAddChatMessage(getMessage('welcomeMessage'), 0x7ef3fa)
 
-        if getVolume().radio == 0 and cfg.audio.volume ~= 0 then
-            sampAddChatMessage(getMessage('radioDisabledWarning'), 0x7ef3fa)
+        if cfg.audio.enable then
+            if not checkAudioResources() and cfg.audio.enable then
+                sampAddChatMessage(getMessage('pleaseDownloadResources'), -1)
+            end
+
+            if getVolume().radio == 0 and cfg.audio.volume ~= 0 then
+                sampAddChatMessage(getMessage('radioDisabledWarning'), 0x7ef3fa)
+            end
         end
 
-        if TACTICAL_ENABLE.v then
+        if cfg.tactical.enable then
             playRandomFromCategory('isReady')
         end
     end
 
     if cfg.audio.noRadio then
-        memory.copy(0x4EB9A0, memory.strptr("\xC2\x04\x00"), 3, true)
+        writeMemory(0x4EB9A0, 3, 1218, true)
     end
 
     while true do
         wait(0)
 
-        if TACTICAL_ENABLE.v and ((isKeyDown(0xA4) or not TACTICAL_LMENU.v) and wasKeyPressed(cfg.tactical.key)) then
+        if cfg.tactical.enable and ((isKeyDown(0xA4) or not cfg.tactical.alt) and wasKeyPressed(cfg.tactical.key)) then
             if not sampIsChatInputActive() and not isSampfuncsConsoleActive() and not sampIsDialogActive() then
                 if isCharOnFoot(playerPed) and not isCharDead(playerPed) then
-                    if os.clock() - TACTICAL_COOLDOWN.v > wraith_tactical_lastused then
+                    if os.clock() - cfg.tactical.cooldown > wraith_tactical_lastused then
                         table.insert(tempThreads, lua_thread.create(function()
-                            if TACTICAL_INSTANT.v then
+                            if cfg.tactical.instant then
                                 if cfg.tactical.key ~= 0x51 or readMemory(getCharPointer(playerPed) + 0x528, 1, false) ==
                                     19 then
                                     wait(200)
@@ -1079,7 +1035,7 @@ function main()
                                 playRandomFromCategory('tactical')
                                 wait(1500)
                             end
-                            if not TACTICAL_INSTANT.v and isKeyDown(cfg.tactical.key) then
+                            if not cfg.tactical.instant and isKeyDown(cfg.tactical.key) then
                                 wraith_tactical_active = false
                                 printStyledString(getMessage('phasingCanceled'), 2000, 5)
                                 stopReserveSoundNow()
@@ -1132,7 +1088,7 @@ function main()
                         -- blocking passive because we are underground
                         local start_wait = os.clock()
                         wait(4000)
-                        while os.clock() - start_wait < (TACTICAL_INSTANT.v and 4.5 or 6.5) do
+                        while os.clock() - start_wait < (cfg.tactical.instant and 4.5 or 6.5) do
                             wait(0)
                             if wraith_tactical_active then
                                 wait(100)
@@ -1148,19 +1104,19 @@ function main()
                     else
                         -- cooldown voiceline
                         playRandomFromCategory('notReady')
-                        local left = math.floor(TACTICAL_COOLDOWN.v - (os.clock() - wraith_tactical_lastused))
+                        local left = math.floor(cfg.tactical.cooldown - (os.clock() - wraith_tactical_lastused))
                         printStringNow(string.format('%sc', left), 3000)
                     end
                 end
             end
         end
 
-        if DEBUG.v and (DEBUG_NEED_AIMLINES.v or DEBUG_NEED_3DTEXT.v) then
+        if cfg.options.debug and (cfg.options.debugNeedAimLines or cfg.options.debugNeed3dtext) then
             for nick, data in pairs(playersAimData) do
                 if sampIsPlayerConnected(data.playerId) then
                     local result, ped = sampGetCharHandleBySampPlayerId(data.playerId)
                     if result and sampGetPlayerNickname(data.playerId) == nick then
-                        if DEBUG_NEED_AIMLINES.v and data.camMode ~= 4 then
+                        if cfg.options.debugNeedAimLines and data.camMode ~= 4 then
                             local aspects = { data.realAspect }
 
                             if data.realAspect == "16:9" then
@@ -1170,11 +1126,11 @@ function main()
                             for k, aspect in pairs(aspects) do
                                 local p1x, p1y, p1z, p2x, p2y, p2z = processAimLine(data, aspect)
 
-                                if DEBUG_NEED_AIMLINES_FULL.v then
+                                if cfg.options.debugNeedAimLinesFull then
                                     drawDebugLine(p1x, p1y, p1z, p2x, p2y, p2z, 0xff00ffff, 0xffffffff, 0xff348cb2)
                                 end
 
-                                if DEBUG_NEED_AIMLINES_LOS.v then
+                                if cfg.options.debugNeedAimLinesLOS then
                                     local result, colPoint =
                                         processLineOfSight(p1x, p1y, p1z, p2x, p2y, p2z, true, true, true, true, true,
                                             true, true, true)
@@ -1186,7 +1142,7 @@ function main()
                             end
                         end
 
-                        if DEBUG.v and DEBUG_NEED_3DTEXT.v and debug3dText[nick] == nil then
+                        if cfg.options.debug and cfg.options.debugNeed3dtext and debug3dText[nick] == nil then
                             local text = string.format("%s, %s, hit: %s", os.clock(), data.realAspect,
                                 data.realAspectHit)
                             local sampTextId = sampCreate3dText(text, 0xFFFFFFFF, 0.0, 0.0, 0.02, 10.0, false,
@@ -1210,12 +1166,12 @@ function main()
             end
         end
 
-        if DEBUG.v and DEBUG_NEED_AIMLINE.v and playerPedAimData then
-            if DEBUG.v and DEBUG_NEED_TO_TWEAK_ANGLES.v then
+        if cfg.options.debug and cfg.options.debugNeedAimLine and playerPedAimData then
+            if cfg.options.debug and cfg.options.debugNeedToTweakAngle then
                 processDebugOffset(playerPedAimData.realAspect, playerPedAimData.weapon)
             end
 
-            if DEBUG_NEED_AIMLINE.v then
+            if cfg.options.debugNeedAimLine then
                 local aspects = { playerPedAimData.realAspect }
 
                 if playerPedAimData.realAspect == "16:9" then
@@ -1225,11 +1181,11 @@ function main()
                 for k, aspect in pairs(aspects) do
                     local p1x, p1y, p1z, p2x, p2y, p2z = processAimLine(playerPedAimData, aspect)
 
-                    if DEBUG_NEED_AIMLINE_FULL.v then
+                    if cfg.options.debugNeedAimLineFull then
                         drawDebugLine(p1x, p1y, p1z, p2x, p2y, p2z, 0xff00ffff, 0xffffffff, 0xff348cb2)
                     end
 
-                    if DEBUG_NEED_AIMLINE_LOS.v then
+                    if cfg.options.debugNeedAimLineLOS then
                         local result, colPoint = processLineOfSight(p1x, p1y, p1z, p2x, p2y, p2z, true, true, true,
                             true, true, true, true, true)
                         if result then
@@ -1244,26 +1200,24 @@ function main()
         -- TODO: rework wraith_passive_triggeredbyped logic
         if needToTriggerAimedPed then
             needToTriggerAimedPed = false
-            if PASSIVE_ENABLE.v and os.clock() - PASSIVE_COOLDOWN.v > wraith_passive_lastused then
+            if cfg.passive.enable and os.clock() - cfg.passive.cooldown > wraith_passive_lastused then
                 triggerPassive('aiming', wraith_passive_triggeredbyped)
             end
         end
 
         if needToTriggerAimedPedSniper then
             needToTriggerAimedPedSniper = false
-            if PASSIVE_ENABLE.v and os.clock() - PASSIVE_COOLDOWN.v > wraith_passive_lastused then
+            if cfg.passive.enable and os.clock() - cfg.passive.cooldown > wraith_passive_lastused then
                 triggerPassive('sniper', wraith_passive_triggeredbyped)
             end
         end
 
         if needToTriggerAimedVehicle then
             needToTriggerAimedVehicle = false
-            if PASSIVE_ENABLE.v and os.clock() - PASSIVE_COOLDOWN.v > wraith_passive_lastused then
+            if cfg.passive.enable and os.clock() - cfg.passive.cooldown > wraith_passive_lastused then
                 triggerPassive('vehicle', wraith_passive_triggeredbyped)
             end
         end
-
-        imgui.Process = main_window_state.v
 
         if requestToUnload then
             wait(200)
@@ -1284,7 +1238,7 @@ function processAimLine(data, aspect)
     -- data.weapon
     local currentWeaponAngle = getCurrentWeaponAngle(aspect, data.weapon)
 
-    if DEBUG.v and DEBUG_NEED_DRAW_ANGLES.v then
+    if cfg.options.debug and cfg.options.debugNeedToDrawAngles then
         renderFontDrawText(my_font,
             string.format('a: %s || w: %s || curxy: %s || curz: %s', aspect, data.weapon, currentWeaponAngle[1],
                 currentWeaponAngle[2]), 100, 400, 0xFFFFFFFF)
@@ -1312,9 +1266,8 @@ function processAimLine(data, aspect)
 end
 
 -- sampev
-
 function sampev.onSendAimSync(data)
-    if DEBUG.v and DEBUG_NEED_AIMLINE.v and data.camMode ~= 4 and data.camMode ~= 18 then
+    if cfg.options.debug and cfg.options.debugNeedAimLine and data.camMode ~= 4 and data.camMode ~= 18 then
         local hit, realAspect = getRealAspectRatioByWeirdValue(data[aspectRatioKey])
 
         playerPedAimData = {
@@ -1363,7 +1316,7 @@ function sampev.onAimSync(playerId, data)
                 weapon = getCurrentCharWeapon(char)
             }
 
-            if DEBUG.v and (DEBUG_NEED_AIMLINES.v or DEBUG_NEED_3DTEXT.v) then
+            if cfg.options.debug and (cfg.options.debugNeedAimLines or cfg.options.debugNeed3dtext) then
                 playersAimData[nick] = playerAimData
             end
 
@@ -1402,7 +1355,7 @@ function sampev.onAimSync(playerId, data)
                 end
             end
 
-            if DEBUG.v and DEBUG_NEED_TO_EMULATE_CAMERA then
+            if cfg.options.debug and DEBUG_NEED_TO_EMULATE_CAMERA then
                 local _, lId = sampGetPlayerIdByCharHandle(playerPed)
                 if _ and lId == DEBUG_NEED_TO_EMULATE_CAMERA_BY_ID then
                     local p1x, p1y, p1z = data.camPos.x, data.camPos.y, data.camPos.z
@@ -1423,41 +1376,7 @@ function sampev.onSendPlayerSync(data)
     end
 end
 
--- imgui menu
-
-function createImguiCheckbox(imBool, group, key, keyDescription, keyTooltip)
-    if imgui.Checkbox(string.format("##%s", group .. key), imBool) then
-        cfg[group][key] = imBool.v
-        saveCfg()
-    end
-    imgui.SameLine()
-    if imBool.v then
-        imgui.Text(u8:encode(getMessage(keyDescription)))
-    else
-        imgui.TextDisabled(u8:encode(getMessage(keyDescription)))
-    end
-    if keyTooltip and getMessage(keyTooltip) ~= "" then
-        imgui.SameLine()
-        imgui.TextDisabled("(?)")
-        if imgui.IsItemHovered() then
-            imgui.SetTooltip(u8:encode(getMessage(keyTooltip)))
-        end
-    end
-end
-
-function openLink(link)
-    local ffi = require 'ffi'
-    ffi.cdef [[
-            void* __stdcall ShellExecuteA(void* hwnd, const char* op, const char* file, const char* params, const char* dir, int show_cmd);
-            uint32_t __stdcall CoInitializeEx(void*, uint32_t);
-        ]]
-    local shell32 = ffi.load 'Shell32'
-    local ole32 = ffi.load 'Ole32'
-    ole32.CoInitializeEx(nil, 2 + 4) -- COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE
-    sampAddChatMessage("opening link in your browser: " .. link, -1)
-    print(shell32.ShellExecuteA(nil, 'open', link, nil, nil, 1))
-end
-
+-- audio
 function playTestSound()
     local tempSoundPath = getWorkingDirectory() .. "\\resource\\wraith\\" .. cfg.audio.language .. "\\" ..
         CURRENT_RANDOM_SOUND
@@ -1466,290 +1385,34 @@ end
 
 function getVolume()
     return {
-        radio = 100 / 64 * require('memory').getint8(0xBA6798, true),
-        SFX = 100 / 64 * require('memory').getint8(0xBA6797, true)
+        radio = 100 / 64 * readMemory(0xBA6798, 1, true),
+        SFX = 100 / 64 * readMemory(0xBA6797, 1, true)
     }
-    -- можно использовать return memory.getint8(0xBA6798, true), но там максимальное число 64, то есть если радио на фулл то вернет 64
 end
 
-function imgui.OnDrawFrame()
-    if main_window_state.v then
-        imgui.SetNextWindowSize(imgui.ImVec2(500, 500), imgui.Cond.FirstUseEver)
-        imgui.SetNextWindowPos(imgui.ImVec2(250, 250), imgui.Cond.FirstUseEver)
-        imgui.Begin('/wraith by qrlk', main_window_state, imgui.WindowFlags.NoCollapse)
-
-        imgui.Text(u8:encode(getMessage('sectionTweaks')))
-        createImguiCheckbox(welcomeMessage, 'options', 'welcomeMessage', 'settingWelcomeMessage',
-            'tooltipSettingWelcomeMessage')
-        if imgui.Button(u8:encode(getMessage('changeLang'))) then
-            if cfg.options.language == "en" then
-                cfg.options.language = "ru"
-            else
-                cfg.options.language = "en"
-            end
-            saveCfg()
-            printStringNow(getMessage('langChanged'), 1000)
+function checkAudioResources()
+    local temp = {
+        getWorkingDirectory() .. "\\resource\\wraith\\tactical_instant.mp3",
+        getWorkingDirectory() .. "\\resource\\wraith\\tactical.mp3"
+    }
+    for k, v in pairs(audioLines) do
+        for kk, vv in pairs(v) do
+            table.insert(temp, getWorkingDirectory() .. "\\resource\\wraith\\" .. cfg.audio.language .. "\\" .. vv)
         end
-
-        if imgui.Button(u8:encode(getMessage('unloadScript'))) then
-            printStringNow('wraith.lua terminated :c', 1000)
-            main_window_state.v = false
-            requestToUnload = true
-        end
-
-        imgui.NewLine()
-
-        imgui.Text(u8:encode("Описание"))
-        imgui.TextWrapped(u8:encode(getMessage('description')))
-
-        if imgui.Button(u8:encode(getMessage('moreAboutScript'))) then
-            openLink("https://www.blast.hk/threads/198111/")
-        end
-
-        if imgui.Button(u8:encode(getMessage('moreAboutSC'))) then
-            openLink("https://www.blast.hk/threads/193650/")
-        end
-
-        imgui.NewLine()
-
-        imgui.Text(u8:encode(getMessage('sectionPassive')))
-        createImguiCheckbox(PASSIVE_ENABLE, 'passive', 'enable', 'settingPassiveEnable', 'tooltipSettingPassiveEnable')
-
-        if PASSIVE_ENABLE.v then
-            createImguiCheckbox(PASSIVE_TRACER, 'passive', 'showTempTracer', 'settingPassiveTracer',
-                'tooltipSettingPassiveTracer')
-            createImguiCheckbox(PASSIVE_STRING, 'passive', 'printStyledString', 'settingPassiveString',
-                'tooltipSettingPassiveString')
-
-            imgui.PushItemWidth(200)
-            imgui.SliderInt(u8:encode(getMessage('settingPassiveCooldown')), PASSIVE_COOLDOWN, 6, 100)
-            if PASSIVE_COOLDOWN.v ~= cfg.passive.cooldown and PASSIVE_COOLDOWN.v >= 6 and PASSIVE_COOLDOWN.v <= 100 then
-                cfg.passive.cooldown = PASSIVE_COOLDOWN.v
-                saveCfg()
-            end
-        end
-
-        imgui.NewLine()
-
-        imgui.Text(u8:encode(getMessage('sectionTactical')))
-        createImguiCheckbox(TACTICAL_ENABLE, 'tactical', 'enable', 'settingTacticalEnable',
-            'tooltipSettingTacticalEnable')
-
-        if TACTICAL_ENABLE.v then
-            imgui.TextColored(imgui.ImColor(255, 0, 0, 255):GetVec4(), u8:encode(getMessage('tacticalCheatWarning')))
-            if imgui.Button(u8:encode(getMessage("tacticalHotkey") .. (TACTICAL_LMENU.v and "LEFT ALT + " or "") ..
-                    key.id_to_name(cfg.tactical.key))) then
-                main_window_state.v = false
-                table.insert(tempThreads, lua_thread.create(function()
-                    sampShowDialog(767, getMessage('legacyChangeKeyTitle'), getMessage('legacyChangeKeyText'),
-                        getMessage('legacyChangeKeyButton1'), getMessage('legacyChangeKeyButton2'))
-                    while sampIsDialogActive(767) do
-                        wait(100)
-                    end
-                    local resultMain, buttonMain, typ = sampHasDialogRespond(767)
-                    local isThisBetterThanExtraDependency = true
-                    if buttonMain == 1 then
-                        while isThisBetterThanExtraDependency do
-                            wait(0)
-                            for i = 1, 200 do
-                                if isKeyDown(i) then
-                                    sampAddChatMessage(getMessage('legacyChangeKeySuccess') ..
-                                        (TACTICAL_LMENU.v and "LEFT ALT + " or "") ..
-                                        key.id_to_name(i), -1)
-                                    cfg.tactical.key = i
-                                    addOneOffSound(0.0, 0.0, 0.0, 1052)
-                                    saveCfg()
-                                    isThisBetterThanExtraDependency = false
-                                    break
-                                end
-                            end
-                        end
-                    end
-                    main_window_state.v = true
-                end))
-            end
-            createImguiCheckbox(TACTICAL_LMENU, 'tactical', 'alt', 'settingTacticalAlt', 'tooltipSettingTacticalAlt')
-            createImguiCheckbox(TACTICAL_INSTANT, 'tactical', 'instant', 'settingTacticalInstant',
-                'tooltipSettingTacticalInstant')
-
-            imgui.PushItemWidth(200)
-            imgui.SliderInt(u8:encode(getMessage('settingTacticalCooldown')), TACTICAL_COOLDOWN, 5, 100)
-            if TACTICAL_COOLDOWN.v ~= cfg.tactical.cooldown and TACTICAL_COOLDOWN.v >= 5 and TACTICAL_COOLDOWN.v <= 100 then
-                cfg.tactical.cooldown = TACTICAL_COOLDOWN.v
-                saveCfg()
-            end
-        end
-
-        imgui.NewLine()
-
-        imgui.Text(u8:encode(getMessage('sectionAudio')))
-
-        if getVolume().radio == 0 and cfg.audio.volume ~= 0 then
-            imgui.TextColored(imgui.ImColor(255, 0, 0, 255):GetVec4(),
-                u8:encode(getMessage('radioDisabledWarningImgui')))
-        end
-
-        createImguiCheckbox(NO_RADIO, 'audio', 'noRadio', 'settingNoRadio', 'tooltipSettingNoRadio')
-
-        createImguiCheckbox(AUDIO_IGNORE_MISSING_RESOURCES, 'audio', 'ignoreMissing', 'settingIgnoreMissing',
-            'tooltipSettingIgnoreMissing')
-
-        imgui.PushItemWidth(200)
-        if imgui.Combo(u8:encode(getMessage('settingAudioLanguage')), AUDIO_LANGUAGE,
-                i18n.audioLangTable[cfg.options.language], 10) then
-            cfg.audio.language = audioLanguages[AUDIO_LANGUAGE.v + 1]
-            playTestSound()
-            saveCfg()
-        end
-
-        imgui.PushItemWidth(200)
-        imgui.SliderInt(u8:encode(getMessage('settingVolume')), AUDIO_VOLUME, 0, 100)
-        if AUDIO_VOLUME.v ~= cfg.audio.volume and AUDIO_VOLUME.v >= 0 and AUDIO_VOLUME.v <= 100 then
-            cfg.audio.volume = AUDIO_VOLUME.v
-            playTestSound()
-            saveCfg()
-        end
-
-        imgui.PushItemWidth(200)
-        imgui.SliderInt(u8:encode(getMessage('settingVolumeQuietOffset')), AUDIO_VOLUME_QUIET_OFFSET, 0, 100)
-        if AUDIO_VOLUME_QUIET_OFFSET.v ~= cfg.audio.quietOffset and AUDIO_VOLUME_QUIET_OFFSET.v >= 0 and
-            AUDIO_VOLUME_QUIET_OFFSET.v <= 100 then
-            cfg.audio.quietOffset = AUDIO_VOLUME_QUIET_OFFSET.v
-            stopMainSoundNow()
-            stopReserveSoundNow()
-            if math.random(1, 10) % 2 == 0 then
-                playRandomFromCategory('aiming')
-            else
-                -- fix
-                playReserveSoundNow(getWorkingDirectory() .. "\\resource\\wraith\\tactical_instant.mp3")
-            end
-            saveCfg()
-        end
-
-        if imgui.Button(u8:encode(getMessage('randomSound') .. CURRENT_RANDOM_SOUND)) then
-            CURRENT_RANDOM_SOUND = getRandomSoundName()
-            playTestSound()
-        end
-
-        if imgui.Button(u8:encode("PLAY")) then
-            playTestSound()
-        end
-
-        imgui.NewLine()
-
-        imgui.Text(u8:encode(getMessage('sectionDebug')))
-        createImguiCheckbox(DEBUG, 'options', 'debug', 'settingDebug', 'tooltipSettingDebug')
-        if DEBUG.v then
-            imgui.Text(u8:encode(getMessage('settingDebugScriptDesc')))
-
-            --xiaomi
-            if imgui.Button(u8:encode(getMessage('debugScriptXiaomi'))) then
-                openLink("https://www.blast.hk/threads/198256/")
-            end
-            --aimline
-            if imgui.Button(u8:encode(getMessage('debugScriptAimline'))) then
-                openLink("https://www.blast.hk/threads/198312/")
-            end
-
-            imgui.Text(u8:encode(getMessage('settingDebugScriptDesc2')))
-
-
-            createImguiCheckbox(DEBUG_NEED_AIMLINES, 'options', 'debugNeedAimLines', 'settingDebugNeedAimLines',
-                'tooltipSettingDebugNeedAimLines')
-            if DEBUG_NEED_AIMLINES.v then
-                createImguiCheckbox(DEBUG_NEED_AIMLINES_FULL, 'options', 'debugNeedAimLinesFull',
-                    'settingDebugNeedAimLinesFull', 'tooltipSettingDebugNeedAimLinesFull')
-                createImguiCheckbox(DEBUG_NEED_AIMLINES_LOS, 'options', 'debugNeedAimLinesLOS',
-                    'settingDebugNeedAimLinesLOS', 'tooltipSettingDebugNeedAimLinesLOS')
-            end
-            createImguiCheckbox(DEBUG_NEED_3DTEXT, 'options', 'debugNeed3dtext', 'settingDebugNeed3dtext',
-                'tooltipSettingDebugNeed3dtext')
-            createImguiCheckbox(DEBUG_NEED_AIMLINE, 'options', 'debugNeedAimLine', 'settingDebugNeedAimLine',
-                'tooltipSettingDebugNeedAimLine')
-            if DEBUG_NEED_AIMLINE.v then
-                createImguiCheckbox(DEBUG_NEED_AIMLINE_FULL, 'options', 'debugNeedAimLineFull',
-                    'settingDebugNeedAimLineFull', 'tooltipSettingDebugNeedAimLineFull')
-                createImguiCheckbox(DEBUG_NEED_AIMLINE_LOS, 'options', 'debugNeedAimLineLOS',
-                    'settingDebugNeedAimLineLOS', 'tooltipSettingDebugNeedAimLineLOS')
-            end
-
-            if DEBUG_NEED_AIMLINE.v or DEBUG_NEED_AIMLINES.v then
-                createImguiCheckbox(DEBUG_NEED_DRAW_ANGLES, 'options', 'debugNeedToDrawAngles',
-                    'settingDebugNeedDrawAngles', 'tooltipSettingDebugNeedDrawAngles')
-                createImguiCheckbox(DEBUG_NEED_TO_TWEAK_ANGLES, 'options', 'debugNeedToTweakAngles',
-                    'settingNeedToTweakAngles', 'tooltipSettingNeedToTweakAngles')
-                createImguiCheckbox(DEBUG_NEED_TO_SAVE_ANGLES_INI, 'options', 'debugNeedToSaveAngles',
-                    'settingNeedToSaveAnglesIni', 'tooltipSettingNeedToSaveAnglesIni')
-            end
-        end
-
-        imgui.End()
     end
-end
-
-function apply_custom_style()
-    imgui.SwitchContext()
-    local style = imgui.GetStyle()
-    local colors = style.Colors
-    local clr = imgui.Col
-    local ImVec4 = imgui.ImVec4
-    style.WindowRounding = 2.0
-    style.WindowTitleAlign = imgui.ImVec2(0.5, 0.84)
-    style.ChildWindowRounding = 2.0
-    style.FrameRounding = 2.0
-    style.ItemSpacing = imgui.ImVec2(5.0, 4.0)
-    style.ScrollbarSize = 13.0
-    style.ScrollbarRounding = 0
-    style.GrabMinSize = 8.0
-    style.GrabRounding = 1.0
-    colors[clr.Text] = ImVec4(1.00, 1.00, 1.00, 1.00)
-    colors[clr.TextDisabled] = ImVec4(0.50, 0.50, 0.50, 1.00)
-    colors[clr.WindowBg] = ImVec4(0.06, 0.06, 0.06, 0.94)
-    colors[clr.ChildWindowBg] = ImVec4(1.00, 1.00, 1.00, 0.00)
-    colors[clr.PopupBg] = ImVec4(0.08, 0.08, 0.08, 0.94)
-    colors[clr.ComboBg] = colors[clr.PopupBg]
-    colors[clr.Border] = ImVec4(0.43, 0.43, 0.50, 0.50)
-    colors[clr.BorderShadow] = ImVec4(0.00, 0.00, 0.00, 0.00)
-    colors[clr.FrameBg] = ImVec4(0.16, 0.29, 0.48, 0.54)
-    colors[clr.FrameBgHovered] = ImVec4(0.26, 0.59, 0.98, 0.40)
-    colors[clr.FrameBgActive] = ImVec4(0.26, 0.59, 0.98, 0.67)
-    colors[clr.TitleBg] = ImVec4(0.04, 0.04, 0.04, 1.00)
-    colors[clr.TitleBgActive] = ImVec4(0.16, 0.29, 0.48, 1.00)
-    colors[clr.TitleBgCollapsed] = ImVec4(0.00, 0.00, 0.00, 0.51)
-    colors[clr.MenuBarBg] = ImVec4(0.14, 0.14, 0.14, 1.00)
-    colors[clr.ScrollbarBg] = ImVec4(0.02, 0.02, 0.02, 0.53)
-    colors[clr.ScrollbarGrab] = ImVec4(0.31, 0.31, 0.31, 1.00)
-    colors[clr.ScrollbarGrabHovered] = ImVec4(0.41, 0.41, 0.41, 1.00)
-    colors[clr.ScrollbarGrabActive] = ImVec4(0.51, 0.51, 0.51, 1.00)
-    colors[clr.CheckMark] = ImVec4(0.26, 0.59, 0.98, 1.00)
-    colors[clr.SliderGrab] = ImVec4(0.24, 0.52, 0.88, 1.00)
-    colors[clr.SliderGrabActive] = ImVec4(0.26, 0.59, 0.98, 1.00)
-    colors[clr.Button] = ImVec4(0.26, 0.59, 0.98, 0.40)
-    colors[clr.ButtonHovered] = ImVec4(0, 0, 0, 1.00)
-    colors[clr.ButtonActive] = ImVec4(0.06, 0.53, 0.98, 1.00)
-    colors[clr.Header] = ImVec4(0.26, 0.59, 0.98, 0.31)
-    colors[clr.HeaderHovered] = ImVec4(0.26, 0.59, 0.98, 0.80)
-    colors[clr.HeaderActive] = ImVec4(0.26, 0.59, 0.98, 1.00)
-    colors[clr.Separator] = colors[clr.Border]
-    colors[clr.SeparatorHovered] = ImVec4(0.26, 0.59, 0.98, 0.78)
-    colors[clr.SeparatorActive] = ImVec4(0.26, 0.59, 0.98, 1.00)
-    colors[clr.ResizeGrip] = ImVec4(0.26, 0.59, 0.98, 0.25)
-    colors[clr.ResizeGripHovered] = ImVec4(0.26, 0.59, 0.98, 0.67)
-    colors[clr.ResizeGripActive] = ImVec4(0.26, 0.59, 0.98, 0.95)
-    colors[clr.CloseButton] = ImVec4(0.41, 0.41, 0.41, 0.50)
-    colors[clr.CloseButtonHovered] = ImVec4(0.98, 0.39, 0.36, 1.00)
-    colors[clr.CloseButtonActive] = ImVec4(0.98, 0.39, 0.36, 1.00)
-    colors[clr.PlotLines] = ImVec4(0.61, 0.61, 0.61, 1.00)
-    colors[clr.PlotLinesHovered] = ImVec4(1.00, 0.43, 0.35, 1.00)
-    colors[clr.PlotHistogram] = ImVec4(0.90, 0.70, 0.00, 1.00)
-    colors[clr.PlotHistogramHovered] = ImVec4(1.00, 0.60, 0.00, 1.00)
-    colors[clr.TextSelectedBg] = ImVec4(0.26, 0.59, 0.98, 0.35)
-    colors[clr.ModalWindowDarkening] = ImVec4(0.80, 0.80, 0.80, 0.35)
+    local foundIssue = false
+    for k, v in pairs(temp) do
+        if not doesFileExist(v) then
+            temp = nil
+            return false
+        end
+    end
+    return true
 end
 
 -- debug
 function saveDebugIniIfNeeded()
-    if DEBUG.v and DEBUG_NEED_TO_SAVE_ANGLES_INI.v then
+    if cfg.options.debug and cfg.options.debugNeedToSaveAngles then
         inicfg.save(anglesPerAspectRatio, angelsIniFileName)
     end
 end
@@ -1822,4 +1485,513 @@ function onScriptTerminate(LuaScript, quitGame)
     for k, v in pairs(debug3dText) do
         sampDestroy3dText(v)
     end
+end
+
+--------------------------------------------------------------------------------
+-------------------------------------MENU---------------------------------------
+--------------------------------------------------------------------------------
+function callMenu(pos)
+    sampShowDialog(0)
+    sampCloseCurrentDialogWithButton(0)
+    openMenu(pos)
+end
+
+function openLink(link)
+    local ffi = require 'ffi'
+    ffi.cdef [[
+            void* __stdcall ShellExecuteA(void* hwnd, const char* op, const char* file, const char* params, const char* dir, int show_cmd);
+            uint32_t __stdcall CoInitializeEx(void*, uint32_t);
+        ]]
+    local shell32 = ffi.load 'Shell32'
+    local ole32 = ffi.load 'Ole32'
+    ole32.CoInitializeEx(nil, 2 + 4) -- COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE
+    sampAddChatMessage("opening link in your browser: " .. link, -1)
+    print(shell32.ShellExecuteA(nil, 'open', link, nil, nil, 1))
+end
+
+function openMenu(pos)
+    -- original snippet by fyp, but was slighty modified
+    local function submenus_show(menu, caption, select_button, close_button, back_button, pos)
+        select_button, close_button, back_button = select_button or 'Select', close_button or 'Close',
+            back_button or 'Back'
+        prev_menus = {}
+        function display(menu, id, caption, pos)
+            local string_list = {}
+            for i, v in ipairs(menu) do
+                table.insert(string_list, type(v.submenu) == 'table' and v.title .. '  >>' or v.title)
+            end
+            sampShowDialog(id, caption, table.concat(string_list, '\n'), select_button,
+                (#prev_menus > 0) and back_button or close_button, 4)
+            if pos then
+                sampSetCurrentDialogListItem(pos)
+                if pos > 20 then
+                    setVirtualKeyDown(40, true)
+                    setVirtualKeyDown(40, false)
+                    setVirtualKeyDown(38, true)
+                    setVirtualKeyDown(38, false)
+                end
+            end
+            repeat
+                wait(0)
+                local result, button, list = sampHasDialogRespond(id)
+                if result then
+                    if button == 1 and list ~= -1 then
+                        local item = menu[list + 1]
+                        if type(item.submenu) == 'table' then -- submenu
+                            table.insert(prev_menus, { menu = menu, caption = caption, pos = list })
+                            if type(item.onclick) == 'function' then
+                                item.onclick(menu, list + 1, item.submenu)
+                            end
+                            return display(item.submenu, id + 1, item.submenu.title and item.submenu.title or item.title)
+                        elseif type(item.onclick) == 'function' then
+                            local result = item.onclick(menu, list + 1)
+                            if not result then return result end
+                            return display(menu, id, caption, list)
+                        else
+                            return display(menu, id, caption, list)
+                        end
+                    else -- if button == 0
+                        if #prev_menus > 0 then
+                            local prev_menu = prev_menus[#prev_menus]
+                            prev_menus[#prev_menus] = nil
+                            return display(prev_menu.menu, id - 1, prev_menu.caption, prev_menu.pos)
+                        end
+                        return false
+                    end
+                end
+            until result
+        end
+
+        return display(menu, 31337, caption or menu.title, pos)
+    end
+
+    local function mergeMenu(mod, all)
+        for k, v in pairs(all) do
+            table.insert(mod, v)
+        end
+    end
+
+    local function getLastNCharacters(str, n)
+        if n >= 0 and n <= #str then
+            return string.sub(str, -n)
+        else
+            return str
+        end
+    end
+
+
+    local function createLinkRow(title, link)
+        return {
+            title = title,
+            onclick = function()
+                openLink(link)
+                return true
+            end
+        }
+    end
+
+    local function createEmptyLine()
+        return {
+            title = " "
+        }
+    end
+
+    local function generateStatusString(numBars, maxBars)
+        local statusString = "["
+        local bar = "|"
+        local emptyBar = " "
+
+        -- Calculate the number of empty bars needed
+        local numEmptyBars = maxBars - numBars
+
+        -- Add "|" characters to the status string
+        for i = 1, numBars do
+            statusString = statusString .. bar
+        end
+
+        -- Add empty bars to the status string
+        for i = 1, numEmptyBars do
+            statusString = statusString .. emptyBar
+        end
+
+        statusString = statusString .. "] " .. tostring(numBars) .. "/" .. tostring(maxBars)
+
+        return statusString
+    end
+
+    local function createSimpleToggle(group, setting, text, disabled, func)
+        return {
+            title = (disabled and "{696969}" or "") .. text .. ": " .. tostring(cfg[group][setting]),
+            onclick = function(menu, row)
+                cfg[group][setting] = not cfg[group][setting]
+                saveCfg()
+                saveDebugIniIfNeeded()
+                menu[row].title = (disabled and "{696969}" or "") .. text .. ": " .. tostring(cfg[group][setting])
+                if not func then
+                    return true
+                else
+                    return func(cfg[group][setting], menu, row)
+                end
+            end
+        }
+    end
+
+    local function createSimpleSlider(group, setting, text, caption, button1, min, max, stepCoof, funcOnChange, funcOnEnd)
+        return {
+            title = text .. ": " .. tostring(cfg[group][setting]),
+            onclick = function(menu, row)
+                if cfg[group][setting] < min then
+                    cfg[group][setting] = min
+                end
+                sampShowDialog(767, caption, generateStatusString(cfg[group][setting], max), button1)
+
+                while sampIsDialogActive(767) do
+                    wait(100)
+                    if sampIsDialogActive(767) and (isKeyDown(0x25) or isKeyDown(0x26) or isKeyDown(0x27) or isKeyDown(0x28)) then
+                        local step = 0
+                        if isKeyDown(0x27) then
+                            step = 1
+                        elseif isKeyDown(0x26) then
+                            step = 5
+                        elseif isKeyDown(0x25) then
+                            step = -1
+                        elseif isKeyDown(0x28) then
+                            step = -5
+                        end
+
+                        local newValue = cfg[group][setting] + step * stepCoof
+                        if newValue < min then
+                            newValue = min
+                        elseif newValue > 100 then
+                            newValue = 100
+                        end
+                        cfg[group][setting] = newValue
+
+                        if funcOnChange then
+                            funcOnChange(cfg[group][setting])
+                        end
+
+                        sampShowDialog(767, caption, generateStatusString(cfg[group][setting], max), button1)
+                    end
+                end
+
+                menu[row].title = text .. ": " .. tostring(cfg[group][setting])
+
+                if not ffuncOnEndunc then
+                    return true
+                else
+                    return funcOnEnd(cfg[group][setting], menu, row)
+                end
+            end
+        }
+    end
+
+    --welcome section
+    local function genSectionWelcome()
+        return {
+            {
+                title = getMessage("desc"),
+                onclick = function()
+                    sampShowDialog(
+                        0,
+                        "{7ef3fa}/wraith v." .. thisScript().version,
+                        getMessage('description'),
+                        "OK"
+                    )
+                    while sampIsDialogActive() and sampGetCurrentDialogId() == 0 do wait(0) end
+                    return true
+                end
+            },
+            {
+                title = getMessage("changeLang"),
+                onclick = function(menu, row)
+                    cfg.options.language = cfg.options.language == "ru" and "en" or "ru"
+                    saveCfg()
+                    printStringNow(getMessage('langChanged'), 1000)
+                    callMenu()
+                end
+            }
+        }
+    end
+
+    -- links section
+    local function genSectionLinks()
+        return {
+            {
+                title = getMessage("sectionLinks")
+            },
+            createLinkRow(getMessage("moreAboutScript"), "https://www.blast.hk/threads/198111/"),
+            createLinkRow(getMessage("moreAboutSC"), "https://www.blast.hk/threads/193650/"),
+        }
+    end
+
+    -- passive section
+    local function genSectionPassive()
+        return {
+            {
+                title = getMessage('sectionPassive')
+            },
+            createSimpleToggle("passive", "enable",
+                (cfg.passive.enable and "{696969}" or "") .. getMessage("settingPassive"),
+                false, function(value, menu, pos)
+                    callMenu(pos - 1)
+                    return false
+                end),
+            {
+                title = (not cfg.passive.enable and "{696969}" or "") .. getMessage("passiveActivationMode") ..
+                    (cfg.passive.enable and ("{00ff00}" .. getMessage("passiveActivationEnabled")) or getMessage("passiveActivationDisabled")),
+            },
+            -- passive settings
+            {
+                title = (not cfg.passive.enable and "{696969}" or "") .. getMessage("settingPassiveSection"),
+                submenu = {
+                    createSimpleToggle("passive", "showTempTracer", getMessage("settingPassiveTracer"),
+                        not cfg.passive.enable),
+                    createSimpleToggle("passive", "printStyledString", getMessage("settingPassiveString"),
+                        not cfg.passive.enable),
+                    createEmptyLine(),
+                    createSimpleSlider("passive", "cooldown",
+                        (not cfg.passive.enable and "{696969}" or "") .. getMessage('settingPassiveCooldown'),
+                        getMessage('settingPassiveCooldownCaption'), "OK", 6, 100,
+                        1, function(v)
+                            saveCfg()
+                        end),
+                },
+            }
+        }
+    end
+
+    -- tactical section
+    local function genSectionTactical()
+        return {
+            {
+                title = getMessage('sectionTactical')
+            },
+            createSimpleToggle("tactical", "enable",
+                (cfg.tactical.enable and "{696969}" or "") .. getMessage("settingTactical"), false,
+                function(value, menu, pos)
+                    callMenu(pos - 1)
+                    return false
+                end),
+
+            {
+                title = (not cfg.tactical.enable and "{696969}" or "") .. getMessage("tacticalActivationMode") ..
+                    (cfg.tactical.enable and ("{ff0000}" .. (cfg.tactical.alt and "LEFT ALT + " or "") .. key.id_to_name(cfg.tactical.key)) or getMessage("tacticalActivationDisabled")),
+                submenu = {
+                    {
+                        title = (not cfg.tactical.enable and "{696969}" or "") ..
+                            getMessage("tacticalKeyName") .. key.id_to_name(cfg.tactical.key),
+                        onclick = function(menu, row)
+                            sampShowDialog(777, getMessage('legacyChangeKeyTitle'), getMessage('legacyChangeKeyText'),
+                                getMessage('legacyChangeKeyButton1'), getMessage('legacyChangeKeyButton2'))
+                            while sampIsDialogActive(777) do
+                                wait(100)
+                            end
+                            local resultMain, buttonMain, typ = sampHasDialogRespond(777)
+                            local isThisBetterThanExtraDependency = true
+                            if buttonMain == 1 then
+                                while isThisBetterThanExtraDependency do
+                                    wait(0)
+                                    for i = 1, 200 do
+                                        if isKeyDown(i) then
+                                            sampAddChatMessage(getMessage('legacyChangeKeySuccess') ..
+                                                (cfg.tactical.alt and "LEFT ALT + " or "") ..
+                                                key.id_to_name(i), -1)
+                                            cfg.tactical.key = i
+                                            addOneOffSound(0.0, 0.0, 0.0, 1052)
+                                            saveCfg()
+                                            isThisBetterThanExtraDependency = false
+                                            break
+                                        end
+                                    end
+                                end
+                                callMenu(9)
+                                return false
+                            else
+                                return true
+                            end
+                        end
+                    },
+                    createSimpleToggle("tactical", "alt", getMessage("settingTacticalAlt"), not cfg.tactical.enable,
+                        function()
+                            callMenu(9)
+                            return false
+                        end),
+                }
+            },
+            --tactical settings
+            {
+                title = (not cfg.tactical.enable and "{696969}" or "") .. getMessage("settingTacticalSection"),
+                submenu = {
+                    createSimpleToggle("tactical", "instant", getMessage("settingTacticalInstant"),
+                        not cfg.tactical.enable),
+                    createEmptyLine(),
+                    createSimpleSlider("tactical", "cooldown",
+                        (not cfg.tactical.enable and "{696969}" or "") .. getMessage('settingTacticalCooldown'),
+                        getMessage("settingTacticalCooldownCaption"), "OK", 6, 100,
+                        1, function(v)
+                            saveCfg()
+                        end),
+                }
+            },
+        }
+    end
+    --audio section
+    local function genSectionAudio()
+        return {
+            (function()
+                local basecolor = "{AAAAAA}"
+                local str = basecolor .. getMessage("sectionAudio")
+                if getVolume().radio == 0 then
+                    str = str .. " || {ff0000}" .. getMessage('checkAudioOff') .. basecolor
+                else
+                    if radio_were_disabled then
+                        str = str .. " || {ff0000}" .. getMessage('checkAudioOffNeedReboot') .. basecolor
+                    end
+                    str = str .. " || {00ff00}" .. getMessage("checkAudioOn") .. basecolor
+                end
+                if checkAudioResources() then
+                    str = str .. " || {00ff00}" .. getMessage("checkResourcesYes") .. basecolor
+                else
+                    str = str .. " || {ff0000}" .. getMessage("checkResourcesNo") .. basecolor
+                end
+
+                return {
+                    title = str
+                }
+            end)(),
+
+            createSimpleToggle("audio", "enable", getMessage("settingAudioEnable"), false),
+            createSimpleToggle("audio", "ignoreMissing", getMessage('settingIgnoreMissing'), false),
+
+            (function()
+                local langId = 1
+                for k, v in pairs(audioLanguages) do
+                    if v == cfg.audio.language then
+                        langId = k
+                    end
+                end
+                local submenu = {}
+
+                for k, v in pairs(audioLanguages) do
+                    table.insert(submenu, {
+                        title = i18n.audioLangTable[cfg.options.language][k],
+                        onclick = function(menu, row)
+                            cfg.audio.language = audioLanguages[row]
+                            playTestSound()
+                            saveCfg()
+                            callMenu()
+                        end
+                    })
+                end
+
+                return {
+                    title = getMessage("lang") .. i18n.audioLangTable[cfg.options.language][langId],
+                    submenu =
+                        submenu
+                }
+            end)(),
+
+            createSimpleSlider("audio", "volume", getMessage('settingVolume'),
+                getMessage("settingVolumeCaption"), "OK", 0, 100,
+                1, function(v)
+                    playTestSound()
+                    saveCfg()
+                end),
+
+            createSimpleSlider("audio", "quietOffset", getMessage('settingVolumeQuietOffset'),
+                getMessage("settingVolumeQuietOffsetCaption"), "OK", 0, 100,
+                1, function(v)
+                    stopMainSoundNow()
+                    stopReserveSoundNow()
+                    if math.random(1, 10) % 2 == 0 then
+                        playRandomFromCategory('aiming')
+                    else
+                        -- fix
+                        playReserveSoundNow(getWorkingDirectory() .. "\\resource\\wraith\\tactical_instant.mp3")
+                    end
+                    saveCfg()
+                end),
+
+            {
+                title = getMessage('randomSound') .. getLastNCharacters(CURRENT_RANDOM_SOUND, 30),
+                onclick = function(menu, row)
+                    CURRENT_RANDOM_SOUND = getRandomSoundName()
+                    playTestSound()
+                    menu[row].title = getMessage('randomSound') .. getLastNCharacters(CURRENT_RANDOM_SOUND, 31)
+                    return true
+                end
+            },
+
+            {
+                title = "PLAY",
+                onclick = function(menu, row)
+                    playTestSound()
+                    return true
+                end
+            }
+        }
+    end
+    -- settings section
+    local function genSectionSettings()
+        return { {
+            title = getMessage("sectionSettings")
+        },
+            createSimpleToggle("options", "welcomeMessage", getMessage('settingWelcomeMessage'), false),
+            createSimpleToggle('audio', 'noRadio', getMessage('settingNoRadio'), false, function(value)
+                if value then
+                    writeMemory(0x4EB9A0, 3, 1218, true)
+                else
+                    writeMemory(0x4EB9A0, 3, 15305557, true)
+                end
+                return true
+            end) }
+    end
+
+    local function genSectionMisc()
+        return {
+            {
+                title = getMessage("sectionMisc")
+            },
+
+            createLinkRow(getMessage("debugScriptXiaomi"), "https://www.blast.hk/threads/198256/"),
+            createLinkRow(getMessage("debugScriptAimline"), "https://www.blast.hk/threads/198312/"),
+            createLinkRow(getMessage("openGithub"), "https://github.com/qrlk/wraith.lua"),
+
+            {
+                title = getMessage("unloadScript"),
+                onclick = function()
+                    printStringNow('wraith.lua terminated :c', 1000)
+                    requestToUnload = true
+                end
+            }
+        }
+    end
+
+    local mod_submenus_sa = {}
+
+    mergeMenu(mod_submenus_sa, genSectionWelcome())
+    mergeMenu(mod_submenus_sa, { createEmptyLine() })
+
+    mergeMenu(mod_submenus_sa, genSectionLinks())
+    mergeMenu(mod_submenus_sa, { createEmptyLine() })
+
+    mergeMenu(mod_submenus_sa, genSectionPassive())
+    mergeMenu(mod_submenus_sa, { createEmptyLine() })
+
+    mergeMenu(mod_submenus_sa, genSectionTactical())
+    mergeMenu(mod_submenus_sa, { createEmptyLine() })
+
+    mergeMenu(mod_submenus_sa, genSectionAudio())
+    mergeMenu(mod_submenus_sa, { createEmptyLine() })
+
+    mergeMenu(mod_submenus_sa, genSectionSettings())
+    mergeMenu(mod_submenus_sa, { createEmptyLine() })
+
+    mergeMenu(mod_submenus_sa, genSectionMisc())
+
+    submenus_show(mod_submenus_sa,
+        "{348cb2}/wraith v." .. thisScript().version .. " || BLASTHACK SC23 2nd PLACE", getMessage("button1"),
+        getMessage("button2"), getMessage("button3"),
+        pos)
 end
