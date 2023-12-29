@@ -479,10 +479,7 @@ local cfg = inicfg.load({
         debugNeedAimLinesLOS = true,
         debugNeedAimLine = true,
         debugNeedAimLineFull = true,
-        debugNeedAimLineLOS = true,
-        debugNeedToDrawAngles = false,
-        debugNeedToTweakAngles = false,
-        debugNeedToSaveAngles = false
+        debugNeedAimLineLOS = true
     },
     audio = {
         language = defaultLanguage,
@@ -522,12 +519,7 @@ saveCfg()
 
 --
 
-local DEBUG_NEED_TO_EMULATE_CAMERA = false
-local DEBUG_NEED_TO_EMULATE_CAMERA_BY_ID = 3
-
 local DEBUG_ENABLE_WEATHER_BROWSE = false
---
-
 
 local tempThreads = {}
 
@@ -645,13 +637,9 @@ end
 -- 21. 1680x1050 - Aspect Ratio: 16:10 153
 -- 23. 1920x1200 - Aspect Ratio: 16:10 153
 
--- thi debug ini is not saved by default and formally loads for debugging purposes only
--- if the values change in possible updates, the name of the .ini file will be changed
-
 -- the aimline snipper is being worked on here: https://www.blast.hk/threads/198312/ https://github.com/qrlk/wraith-aimlined
 
-local angelsIniFileName = "wraith-debug-20231219"
-local anglesPerAspectRatio = inicfg.load({
+local anglesPerAspectRatio = {
     ["5:4"] = {
         curxy = -0.04,
         curz = 0.105,
@@ -730,7 +718,7 @@ local anglesPerAspectRatio = inicfg.load({
         curRFxy = -0.019,
         curRFz = 0.035
     }
-}, angelsIniFileName)
+}
 
 local mainSoundStream = loadAudioStream()
 local reserveSoundStream = loadAudioStream()
@@ -1139,7 +1127,6 @@ function main()
                                 end
                             end
                         end
-
                     else
                         playersAimData[nick] = nil
                     end
@@ -1150,10 +1137,6 @@ function main()
         end
 
         if cfg.options.debug and cfg.options.debugNeedAimLine and playerPedAimData then
-            if cfg.options.debug and cfg.options.debugNeedToTweakAngle then
-                processDebugOffset(playerPedAimData.realAspect, playerPedAimData.weapon)
-            end
-
             if cfg.options.debugNeedAimLine then
                 local aspects = { playerPedAimData.realAspect }
 
@@ -1220,12 +1203,6 @@ end
 function processAimLine(data, aspect)
     -- data.weapon
     local currentWeaponAngle = getCurrentWeaponAngle(aspect, data.weapon)
-
-    if cfg.options.debug and cfg.options.debugNeedToDrawAngles then
-        renderFontDrawText(my_font,
-            string.format('a: %s || w: %s || curxy: %s || curz: %s', aspect, data.weapon, currentWeaponAngle[1],
-                currentWeaponAngle[2]), 100, 400, 0xFFFFFFFF)
-    end
 
     local frontAngleXY = math.atan2(-data.camFrontY, -data.camFrontX)
     local frontAngleZ = 1.5708 - math.acos(data.camFrontZ)
@@ -1403,17 +1380,6 @@ function sampev.onAimSync(playerId, data)
                     end
                 end
             end
-
-            if cfg.options.debug and DEBUG_NEED_TO_EMULATE_CAMERA then
-                local _, lId = sampGetPlayerIdByCharHandle(playerPed)
-                if _ and lId == DEBUG_NEED_TO_EMULATE_CAMERA_BY_ID then
-                    local p1x, p1y, p1z = data.camPos.x, data.camPos.y, data.camPos.z
-                    local p2x, p2y, p2z = data.camPos.x + data.camFront.x * 5, data.camPos.y + data.camFront.y * 5,
-                        data.camPos.z + data.camFront.z * 5
-                    camPos(p1x, p1y, p1z, 0.0, 0.0, 0.0)
-                    ponCameraPoint(p2x, p2y, p2z, 2)
-                end
-            end
         end
     end
 end
@@ -1459,25 +1425,6 @@ function checkAudioResources()
     return true
 end
 
--- debug
-function saveDebugIniIfNeeded()
-    if cfg.options.debug and cfg.options.debugNeedToSaveAngles then
-        inicfg.save(anglesPerAspectRatio, angelsIniFileName)
-    end
-end
-
-saveDebugIniIfNeeded()
-
-function camPos(x, y, z, x1, y1, z1)
-    setFixedCameraPosition(x, y, z, x1, y1, z1)
-    print("setFixedCameraPosition: ", x, y, z, x1, y1, z1)
-end
-
-function ponCameraPoint(x, y, z, m)
-    pointCameraAtPoint(x, y, z, m)
-    print("pointCameraAtPoint: ", x, y, z, m)
-end
-
 function drawDebugLine(ax, ay, az, bx, by, bz, color1, color2, color3)
     local _1, x1, y1, z1 = convert3DCoordsToScreenEx(ax, ay, az)
     local _2, x2, y2, z2 = convert3DCoordsToScreenEx(bx, by, bz)
@@ -1485,47 +1432,6 @@ function drawDebugLine(ax, ay, az, bx, by, bz, color1, color2, color3)
         renderDrawPolygon(x1, y1, 10, 10, 10, 0.0, color1)
         renderDrawLine(x1, y1, x2, y2, 2, color2)
         renderDrawPolygon(x2, y2, 10, 10, 10, 0.0, color3)
-    end
-end
-
-function processDebugOffset(aspect, weapon)
-    if isKeyDown(0xA4) and (isKeyDown(0x25) or isKeyDown(0x26) or isKeyDown(0x27) or isKeyDown(0x28)) then
-        local property1 = false
-        local property2 = false
-
-        if (weapon >= 22 and weapon <= 29) or weapon == 32 then
-            property1 = "curxy"
-            property2 = "curz"
-        elseif weapon == 30 or weapon == 31 then
-            property1 = "curARxy"
-            property2 = "curARz"
-        elseif weapon == 33 then
-            property1 = "curRFxy"
-            property2 = "curRFz"
-        end
-
-        if property1 and property2 then
-            if isKeyDown(0x25) then
-                -- left
-                print(string.format('left'), 1, 1)
-                anglesPerAspectRatio[aspect][property1] = anglesPerAspectRatio[aspect][property1] - 0.001
-            elseif isKeyDown(0x26) then
-                -- up
-                print(string.format('up'), 1, 1)
-                anglesPerAspectRatio[aspect][property2] = anglesPerAspectRatio[aspect][property2] + 0.001
-            elseif isKeyDown(0x27) then
-                -- right
-                print(string.format('right'), 1, 1)
-                anglesPerAspectRatio[aspect][property1] = anglesPerAspectRatio[aspect][property1] + 0.001
-            elseif isKeyDown(0x28) then
-                -- down
-                print(string.format('down'), 1, 1)
-                anglesPerAspectRatio[aspect][property2] = anglesPerAspectRatio[aspect][property2] - 0.001
-            end
-
-            saveDebugIniIfNeeded()
-            wait(100)
-        end
     end
 end
 
@@ -1667,7 +1573,6 @@ function openMenu(pos)
             onclick = function(menu, row)
                 cfg[group][setting] = not cfg[group][setting]
                 saveCfg()
-                saveDebugIniIfNeeded()
                 menu[row].title = (disabled and "{696969}" or "") .. text .. ": " .. tostring(cfg[group][setting])
                 if not func then
                     return true
