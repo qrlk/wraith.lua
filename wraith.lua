@@ -1265,6 +1265,72 @@ function processAimLine(data, aspect)
     return p1x, p1y, p1z, p2x, p2y, p2z
 end
 
+-- function onSendPacket(id, bitStream, priority, reliability, orderingChannel)
+--     if id == 203 then
+--         local packetId = raknetBitStreamReadInt8(bitStream)
+--         local camMode = raknetBitStreamReadInt8(bitStream)
+--         local camFrontX = raknetBitStreamReadFloat(bitStream)
+--         local camFrontY = raknetBitStreamReadFloat(bitStream)
+--         local camFrontZ = raknetBitStreamReadFloat(bitStream)
+--         local camPosX = raknetBitStreamReadFloat(bitStream)
+--         local camPosY = raknetBitStreamReadFloat(bitStream)
+--         local camPosZ = raknetBitStreamReadFloat(bitStream)
+--         local aimZ = raknetBitStreamReadFloat(bitStream)
+--         local int8 = raknetBitStreamReadInt8(bitStream)
+--         local weaponState = math.floor(int8 / 64) % 4
+--         local camExtZoom = int8 % 64
+--         local aspectRatio = raknetBitStreamReadInt8(bitStream)
+
+--         local data = {
+--             camMode = camMode,
+--             camFrontX = camFrontX,
+--             camFrontY = camFrontY,
+--             camFrontZ = camFrontZ,
+--             camPosX = camPosX,
+--             camPosY = camPosY,
+--             camPosZ = camPosZ,
+--             aimZ = aimZ,
+--             camExtZoom = camExtZoom,
+--             weaponState = weaponState,
+--             aspectRatio = aspectRatio
+--         }
+--     end
+-- end
+
+-- function onReceivePacket(id, bitStream)
+--     if id == 203 then
+--         local packetId = raknetBitStreamReadInt8(bitStream)
+--         local playerId = raknetBitStreamReadInt8(bitStream)
+--         local unknown = raknetBitStreamReadInt8(bitStream)
+--         local camMode = raknetBitStreamReadInt8(bitStream)
+--         local camFrontX = raknetBitStreamReadFloat(bitStream)
+--         local camFrontY = raknetBitStreamReadFloat(bitStream)
+--         local camFrontZ = raknetBitStreamReadFloat(bitStream)
+--         local camPosX = raknetBitStreamReadFloat(bitStream)
+--         local camPosY = raknetBitStreamReadFloat(bitStream)
+--         local camPosZ = raknetBitStreamReadFloat(bitStream)
+--         local aimZ = raknetBitStreamReadFloat(bitStream)
+--         local int8 = raknetBitStreamReadInt8(bitStream)
+--         local weaponState = math.floor(int8 / 64) % 4
+--         local camExtZoom = int8 % 64
+--         local aspectRatio = raknetBitStreamReadInt8(bitStream)
+
+--         local data = {
+--             camMode = camMode,
+--             camFrontX = camFrontX,
+--             camFrontY = camFrontY,
+--             camFrontZ = camFrontZ,
+--             camPosX = camPosX,
+--             camPosY = camPosY,
+--             camPosZ = camPosZ,
+--             aimZ = aimZ,
+--             camExtZoom = camExtZoom,
+--             weaponState = weaponState,
+--             aspectRatio = aspectRatio
+--         }
+--     end
+-- end
+
 -- sampev
 function sampev.onSendAimSync(data)
     if cfg.options.debug and cfg.options.debugNeedAimLine and data.camMode ~= 4 and data.camMode ~= 18 then
