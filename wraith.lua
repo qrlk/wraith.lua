@@ -43,9 +43,7 @@ local sampev = require "lib.samp.events"
 local aspectRatioKey = sampev.MODULEINFO.version >= 3 and 'aspectRatio' or 'unknown'
 local key = require 'vkeys'
 
-local font_flag = require('moonloader').font_flag
 local as_action = require('moonloader').audiostream_state
-local my_font = renderCreateFont('Verdana', 12, font_flag.BOLD + font_flag.SHADOW)
 
 local ffi = require("ffi")
 ffi.cdef [[
@@ -60,7 +58,7 @@ ffi.cdef [[
 local defaultLanguage = ffi.C.GetUserDefaultLangID().wLanguage == 1049 and "ru" or "en"
 --
 
--- cringe internalization solution
+-- cringe internationalization solution
 
 local i18n = {
     data = {
@@ -909,6 +907,9 @@ function main()
     if DEBUG_ENABLE_WEATHER_BROWSE then
         local weather = 478
         local hour = 14
+
+        local font_flag = require('moonloader').font_flag
+        local my_font = renderCreateFont('Verdana', 12, font_flag.BOLD + font_flag.SHADOW)
         while DEBUG_ENABLE_WEATHER_BROWSE do
             wait(0)
             renderFontDrawText(my_font, string.format('W: %s || H: %s', weather, hour), 100, 400, 0xFFFFFFFF)
