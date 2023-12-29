@@ -8,7 +8,242 @@ script_url("https://github.com/qrlk/wraith.lua")
 script_version("23.12.2023-rc3")
 
 -- https://github.com/qrlk/qrlk.lua.moonloader
-local enable_sentry = true -- false to disable error reports to sentry.io
+local enable_sentry = true     -- false to disable error reports to sentry.io
+-- https://github.com/qrlk/moonloader-script-updater
+local enable_autoupdate = true -- false to disable auto-update + disable sending initial telemetry (server, moonloader version, script version, samp nickname, virtual volume serial number)
+
+--^^ none of it works if wraith.lua is loaded as a module.
+local mod = {}
+do
+    mod._VERSION = "0.0.1"
+
+    mod.aspectRatios = {
+        [63] = "5:4", -- 1,25
+        [85] = "4:3", -- 1,333333333333333
+        [98] = "43:18", -- 2,388888888888889
+        [127] = "3:2", -- 1,5
+        [143] = "25:16", -- 1,5625
+        [153] = "16:10", -- 1,6
+        [169] = "5:3", -- 1,666666666666667
+        -- [196] = "16:9 (alt)", -- 1,771084337349398
+        [198] = "16:9" -- 1,777777777777778
+    }
+
+    mod.approximateAspectRatio = { {
+        ["start"] = 63 - 11,
+        ["end"] = 63 + 11,
+        ["value"] = "5:4"
+    }, {
+        ["start"] = 85 - 11,
+        ["end"] = 85 + 6.5,
+        ["value"] = "4:3"
+    }, {
+        ["start"] = 98 - 6.5,
+        ["end"] = 98 + 14,
+        ["value"] = "43:18"
+    }, {
+        ["start"] = 127 - 14,
+        ["end"] = 127 + 8,
+        ["value"] = "3:2"
+    }, {
+        ["start"] = 143 - 8,
+        ["end"] = 143 + 5,
+        ["value"] = "25:16"
+    }, {
+        ["start"] = 153 - 5,
+        ["end"] = 153 + 8,
+        ["value"] = "16:10"
+    }, {
+        ["start"] = 169 - 8,
+        ["end"] = 169 + 14.5,
+        ["value"] = "5:3"
+    }, {
+        ["start"] = 198 - 14.5,
+        ["end"] = 198 + 14.5,
+        ["value"] = "16:9"
+    } }
+
+    mod.getRealAspectRatioByWeirdValue = function(aspectRatio)
+        local hit = false
+        if mod.aspectRatios[aspectRatio] ~= nil then
+            hit = true
+            return hit, mod.aspectRatios[aspectRatio]
+        end
+        for k, v in pairs(mod.approximateAspectRatio) do
+            if aspectRatio > v['start'] and aspectRatio < v['end'] then
+                return hit, v['value']
+            end
+        end
+        return false, "unknown"
+    end
+
+    -- 2. 720x480 - Aspect Ratio: 3:2  127
+
+    -- 1. 640x480 - Aspect Ratio: 4:3 85
+    -- 4. 800x600 - Aspect Ratio: 4:3 85
+    -- 5. 1024x768 - Aspect Ratio: 4:3 85
+    -- 6. 1152x864 - Aspect Ratio: 4:3 85
+    -- 11. 1280x960 - Aspect Ratio: 4:3 85
+    -- 15. 1440x1080 - Aspect Ratio: 4:3 85
+    -- 18. 1600x1200 - Aspect Ratio: 4:3 85
+    -- 24. 1920x1440 - Aspect Ratio: 4:3 85
+
+    -- 9. 1280x768 - Aspect Ratio: 5:3 169
+
+    -- 3. 720x576 - Aspect Ratio: 5:4 63
+    -- 12. 1280x1024 - Aspect Ratio: 5:4 63
+
+    -- 7. 1176x664 - Aspect Ratio: 16:9 196
+    -- 13. 1360x768 - Aspect Ratio: 16:9 196
+
+    -- 8. 1280x720 - Aspect Ratio: 16:9 198
+    -- 14. 1366x768 - Aspect Ratio: 16:9 198
+    -- 16. 1600x900 - Aspect Ratio: 16:9 198
+    -- 22. 1920x1080 - Aspect Ratio: 16:9 198
+    -- 25. 2560x1440 - Aspect Ratio: 16:9 198
+
+    -- 26. 3440x1440 - Aspect Ratio: 43:18 98 2,38 2,388888888888889 2,365253077975376
+    -- 27. 2580x1080 - Aspect Ratio: 43:18 98
+
+    -- 17. 1600x1024 - Aspect Ratio: 25:16 143
+
+    -- 10. 1280x800 - Aspect Ratio: 16:10 153
+    -- 21. 1680x1050 - Aspect Ratio: 16:10 153
+    -- 23. 1920x1200 - Aspect Ratio: 16:10 153
+
+    -- the aimline snipper is being worked on here: https://www.blast.hk/threads/198312/ https://github.com/qrlk/wraith-aimlined
+
+    mod.anglesPerAspectRatio = {
+        ["5:4"] = {
+            curxy = -0.04,
+            curz = 0.105,
+            curARxy = -0.027,
+            curARz = 0.07,
+            curRFxy = -0.019,
+            curRFz = 0.047
+        },
+        ["4:3"] = {
+            curxy = -0.044,
+            curz = 0.109,
+            curARxy = -0.03,
+            curARz = 0.07,
+            curRFxy = -0.019,
+            curRFz = 0.047
+        },
+
+        ["43:18"] = {
+            curxy = -0.079,
+            curz = 0.104,
+            curARxy = -0.052,
+            curARz = 0.07,
+            curRFxy = -0.034,
+            curRFz = 0.047
+        },
+        ["3:2"] = {
+            curxy = -0.047,
+            curz = 0.105,
+            curARxy = -0.033,
+            curARz = 0.07,
+            curRFxy = -0.022,
+            curRFz = 0.048
+        },
+        ["25:16"] = {
+            curxy = -0.049,
+            curz = 0.105,
+            curARxy = -0.033,
+            curARz = 0.07,
+            curRFxy = -0.023,
+            curRFz = 0.048
+        },
+        ["16:10"] = {
+            curxy = -0.05,
+            curz = 0.105,
+            curARxy = -0.036,
+            curARz = 0.07,
+            curRFxy = -0.024,
+            curRFz = 0.047
+        },
+        ["5:3"] = {
+            curxy = -0.052,
+            curz = 0.105,
+            curARxy = -0.036,
+            curARz = 0.07,
+            curRFxy = -0.024,
+            curRFz = 0.047
+        },
+        ["16:9"] = {
+            curxy = -0.056,
+            curz = 0.104,
+            curARxy = -0.037,
+            curARz = 0.07,
+            curRFxy = -0.026,
+            curRFz = 0.047
+        },
+
+        -- need to investigate the issue with 16:9 clients without widescreenfix
+        -- ItТs not clear how to distinguish people with a 16:9 fix from those who donТt have it
+        -- if widescreen fix is not installed but widescreen mode is enabled in the settings, the values should be like this:
+
+        ["16:9noWSF"] = {
+            curxy = -0.043,
+            curz = 0.079,
+            curARxy = -0.028,
+            curARz = 0.052,
+            curRFxy = -0.019,
+            curRFz = 0.035
+        }
+    }
+
+    mod.getCurrentWeaponAngle = function(aspect, weapon)
+        if aspect == "unknown" then
+            aspect = "4:3"
+        end
+
+        if (weapon >= 22 and weapon <= 29) or weapon == 32 then
+            return { mod.anglesPerAspectRatio[aspect].curxy, mod.anglesPerAspectRatio[aspect].curz }
+        elseif weapon == 30 or weapon == 31 then
+            return { mod.anglesPerAspectRatio[aspect].curARxy, mod.anglesPerAspectRatio[aspect].curARz }
+        elseif weapon == 33 then
+            return { mod.anglesPerAspectRatio[aspect].curRFxy, mod.anglesPerAspectRatio[aspect].curRFz }
+        end
+
+        return { 0.0, 0.0 }
+    end
+
+    mod.processAimLine = function(data, aspect)
+        -- data.weapon
+        local currentWeaponAngle = mod.getCurrentWeaponAngle(aspect, data.weapon)
+
+        local frontAngleXY = math.atan2(-data.camFrontY, -data.camFrontX)
+        local frontAngleZ = 1.5708 - math.acos(data.camFrontZ)
+
+        -- a small offset is needed because the camera is behind the player model and it cannot be ignored by processLineOfSight
+        -- NOTE: https://github.com/THE-FYP/MoonAdditions/blob/659eb22d2217fd5870e8e1ead797a2175d314337/src/lua_general.cpp#L353
+
+        local p1x = data.camPosX - 2.5 * math.sin(1.5708 + frontAngleZ + currentWeaponAngle[2]) *
+            math.cos(frontAngleXY + currentWeaponAngle[1])
+        local p1y = data.camPosY - 2.5 * math.sin(1.5708 + frontAngleZ + currentWeaponAngle[2]) *
+            math.sin(frontAngleXY + currentWeaponAngle[1])
+        local p1z = data.camPosZ - 2.5 * math.cos(1.5708 + frontAngleZ + currentWeaponAngle[2])
+
+        local p2x = data.camPosX - 250 * math.sin(1.5708 + frontAngleZ + currentWeaponAngle[2]) *
+            math.cos(frontAngleXY + currentWeaponAngle[1])
+        local p2y = data.camPosY - 250 * math.sin(1.5708 + frontAngleZ + currentWeaponAngle[2]) *
+            math.sin(frontAngleXY + currentWeaponAngle[1])
+        local p2z = data.camPosZ - 250 * math.cos(1.5708 + frontAngleZ + currentWeaponAngle[2])
+
+        return p1x, p1y, p1z, p2x, p2y, p2z
+    end
+end
+
+if pcall(debug.getlocal, 4, 1) then
+    return mod
+else
+    print("script")
+end
+
+
+-- https://github.com/qrlk/qrlk.lua.moonloader
 if enable_sentry then
     local sentry_loaded, Sentry = pcall(loadstring,
         [=[return {init=function(a)local b,c,d=string.match(a.dsn,"https://(.+)@(.+)/(%d+)")local e=string.format("https://%s/api/%d/store/?sentry_key=%s&sentry_version=7&sentry_data=",c,d,b)local f=string.format("local target_id = %d local target_name = \"%s\" local target_path = \"%s\" local sentry_url = \"%s\"\n",thisScript().id,thisScript().name,thisScript().path:gsub("\\","\\\\"),e)..[[require"lib.moonloader"script_name("sentry-error-reporter-for: "..target_name.." (ID: "..target_id..")")script_description("Ётот скрипт перехватывает вылеты скрипта '"..target_name.." (ID: "..target_id..")".."' и отправл€ет их в систему мониторинга ошибок Sentry.")local a=require"encoding"a.default="CP1251"local b=a.UTF8;local c="moonloader"function getVolumeSerial()local d=require"ffi"d.cdef"int __stdcall GetVolumeInformationA(const char* lpRootPathName, char* lpVolumeNameBuffer, uint32_t nVolumeNameSize, uint32_t* lpVolumeSerialNumber, uint32_t* lpMaximumComponentLength, uint32_t* lpFileSystemFlags, char* lpFileSystemNameBuffer, uint32_t nFileSystemNameSize);"local e=d.new("unsigned long[1]",0)d.C.GetVolumeInformationA(nil,nil,0,e,nil,nil,nil,0)e=e[0]return e end;function getNick()local f,g=pcall(function()local f,h=sampGetPlayerIdByCharHandle(PLAYER_PED)return sampGetPlayerNickname(h)end)if f then return g else return"unknown"end end;function getRealPath(i)if doesFileExist(i)then return i end;local j=-1;local k=getWorkingDirectory()while j*-1~=string.len(i)+1 do local l=string.sub(i,0,j)local m,n=string.find(string.sub(k,-string.len(l),-1),l)if m and n then return k:sub(0,-1*(m+string.len(l)))..i end;j=j-1 end;return i end;function url_encode(o)if o then o=o:gsub("\n","\r\n")o=o:gsub("([^%w %-%_%.%~])",function(p)return("%%%02X"):format(string.byte(p))end)o=o:gsub(" ","+")end;return o end;function parseType(q)local r=q:match("([^\n]*)\n?")local s=r:match("^.+:%d+: (.+)")return s or"Exception"end;function parseStacktrace(q)local t={frames={}}local u={}for v in q:gmatch("([^\n]*)\n?")do local w,x=v:match("^	*(.:.-):(%d+):")if not w then w,x=v:match("^	*%.%.%.(.-):(%d+):")if w then w=getRealPath(w)end end;if w and x then x=tonumber(x)local y={in_app=target_path==w,abs_path=w,filename=w:match("^.+\\(.+)$"),lineno=x}if x~=0 then y["pre_context"]={fileLine(w,x-3),fileLine(w,x-2),fileLine(w,x-1)}y["context_line"]=fileLine(w,x)y["post_context"]={fileLine(w,x+1),fileLine(w,x+2),fileLine(w,x+3)}end;local z=v:match("in function '(.-)'")if z then y["function"]=z else local A,B=v:match("in function <%.* *(.-):(%d+)>")if A and B then y["function"]=fileLine(getRealPath(A),B)else if#u==0 then y["function"]=q:match("%[C%]: in function '(.-)'\n")end end end;table.insert(u,y)end end;for j=#u,1,-1 do table.insert(t.frames,u[j])end;if#t.frames==0 then return nil end;return t end;function fileLine(C,D)D=tonumber(D)if doesFileExist(C)then local E=0;for v in io.lines(C)do E=E+1;if E==D then return v end end;return nil else return C..D end end;function onSystemMessage(q,type,i)if i and type==3 and i.id==target_id and i.name==target_name and i.path==target_path and not q:find("Script died due to an error.")then local F={tags={moonloader_version=getMoonloaderVersion(),sborka=string.match(getGameDirectory(),".+\\(.-)$")},level="error",exception={values={{type=parseType(q),value=q,mechanism={type="generic",handled=false},stacktrace=parseStacktrace(q)}}},environment="production",logger=c.." (no sampfuncs)",release=i.name.."@"..i.version,extra={uptime=os.clock()},user={id=getVolumeSerial()},sdk={name="qrlk.lua.moonloader",version="0.0.0"}}if isSampAvailable()and isSampfuncsLoaded()then F.logger=c;F.user.username=getNick().."@"..sampGetCurrentServerAddress()F.tags.game_state=sampGetGamestate()F.tags.server=sampGetCurrentServerAddress()F.tags.server_name=sampGetCurrentServerName()else end;print(downloadUrlToFile(sentry_url..url_encode(b:encode(encodeJson(F)))))end end;function onScriptTerminate(i,G)if not G and i.id==target_id then lua_thread.create(function()print("скрипт "..target_name.." (ID: "..target_id..")".."завершил свою работу, выгружаемс€ через 60 секунд")wait(60000)thisScript():unload()end)end end]]local g=os.tmpname()local h=io.open(g,"w+")h:write(f)h:close()script.load(g)os.remove(g)end}]=])
@@ -20,7 +255,6 @@ if enable_sentry then
 end
 
 -- https://github.com/qrlk/moonloader-script-updater
-local enable_autoupdate = true -- false to disable auto-update + disable sending initial telemetry (server, moonloader version, script version, samp nickname, virtual volume serial number)
 local autoupdate_loaded = false
 local Update = nil
 if enable_autoupdate then
@@ -541,201 +775,9 @@ local requestToUnload = false
 
 -- trying to ulitize aspectRatio property from aimSync
 
-local aspectRatios = {
-    [63] = "5:4",    -- 1,25
-    [85] = "4:3",    -- 1,333333333333333
-    [98] = "43:18",  -- 2,388888888888889
-    [127] = "3:2",   -- 1,5
-    [143] = "25:16", -- 1,5625
-    [153] = "16:10", -- 1,6
-    [169] = "5:3",   -- 1,666666666666667
-    -- [196] = "16:9 (alt)", -- 1,771084337349398
-    [198] = "16:9"   -- 1,777777777777778
-}
-
-local approximateAspectRatio = { {
-    ["start"] = 63 - 11,
-    ["end"] = 63 + 11,
-    ["value"] = "5:4"
-}, {
-    ["start"] = 85 - 11,
-    ["end"] = 85 + 6.5,
-    ["value"] = "4:3"
-}, {
-    ["start"] = 98 - 6.5,
-    ["end"] = 98 + 14,
-    ["value"] = "43:18"
-}, {
-    ["start"] = 127 - 14,
-    ["end"] = 127 + 8,
-    ["value"] = "3:2"
-}, {
-    ["start"] = 143 - 8,
-    ["end"] = 143 + 5,
-    ["value"] = "25:16"
-}, {
-    ["start"] = 153 - 5,
-    ["end"] = 153 + 8,
-    ["value"] = "16:10"
-}, {
-    ["start"] = 169 - 8,
-    ["end"] = 169 + 14.5,
-    ["value"] = "5:3"
-}, {
-    ["start"] = 198 - 14.5,
-    ["end"] = 198 + 14.5,
-    ["value"] = "16:9"
-} }
-
-function getRealAspectRatioByWeirdValue(aspectRatio)
-    local hit = false
-    if aspectRatios[aspectRatio] ~= nil then
-        hit = true
-        return hit, aspectRatios[aspectRatio]
-    end
-    for k, v in pairs(approximateAspectRatio) do
-        if aspectRatio > v['start'] and aspectRatio < v['end'] then
-            return hit, v['value']
-        end
-    end
-    return false, "unknown"
-end
-
--- 2. 720x480 - Aspect Ratio: 3:2  127
-
--- 1. 640x480 - Aspect Ratio: 4:3 85
--- 4. 800x600 - Aspect Ratio: 4:3 85
--- 5. 1024x768 - Aspect Ratio: 4:3 85
--- 6. 1152x864 - Aspect Ratio: 4:3 85
--- 11. 1280x960 - Aspect Ratio: 4:3 85
--- 15. 1440x1080 - Aspect Ratio: 4:3 85
--- 18. 1600x1200 - Aspect Ratio: 4:3 85
--- 24. 1920x1440 - Aspect Ratio: 4:3 85
-
--- 9. 1280x768 - Aspect Ratio: 5:3 169
-
--- 3. 720x576 - Aspect Ratio: 5:4 63
--- 12. 1280x1024 - Aspect Ratio: 5:4 63
-
--- 7. 1176x664 - Aspect Ratio: 16:9 196
--- 13. 1360x768 - Aspect Ratio: 16:9 196
-
--- 8. 1280x720 - Aspect Ratio: 16:9 198
--- 14. 1366x768 - Aspect Ratio: 16:9 198
--- 16. 1600x900 - Aspect Ratio: 16:9 198
--- 22. 1920x1080 - Aspect Ratio: 16:9 198
--- 25. 2560x1440 - Aspect Ratio: 16:9 198
-
--- 26. 3440x1440 - Aspect Ratio: 43:18 98 2,38 2,388888888888889 2,365253077975376
--- 27. 2580x1080 - Aspect Ratio: 43:18 98
-
--- 17. 1600x1024 - Aspect Ratio: 25:16 143
-
--- 10. 1280x800 - Aspect Ratio: 16:10 153
--- 21. 1680x1050 - Aspect Ratio: 16:10 153
--- 23. 1920x1200 - Aspect Ratio: 16:10 153
-
--- the aimline snipper is being worked on here: https://www.blast.hk/threads/198312/ https://github.com/qrlk/wraith-aimlined
-
-local anglesPerAspectRatio = {
-    ["5:4"] = {
-        curxy = -0.04,
-        curz = 0.105,
-        curARxy = -0.027,
-        curARz = 0.07,
-        curRFxy = -0.019,
-        curRFz = 0.047
-    },
-    ["4:3"] = {
-        curxy = -0.044,
-        curz = 0.109,
-        curARxy = -0.03,
-        curARz = 0.07,
-        curRFxy = -0.019,
-        curRFz = 0.047
-    },
-
-    ["43:18"] = {
-        curxy = -0.079,
-        curz = 0.104,
-        curARxy = -0.052,
-        curARz = 0.07,
-        curRFxy = -0.034,
-        curRFz = 0.047
-    },
-    ["3:2"] = {
-        curxy = -0.047,
-        curz = 0.105,
-        curARxy = -0.033,
-        curARz = 0.07,
-        curRFxy = -0.022,
-        curRFz = 0.048
-    },
-    ["25:16"] = {
-        curxy = -0.049,
-        curz = 0.105,
-        curARxy = -0.033,
-        curARz = 0.07,
-        curRFxy = -0.023,
-        curRFz = 0.048
-    },
-    ["16:10"] = {
-        curxy = -0.05,
-        curz = 0.105,
-        curARxy = -0.036,
-        curARz = 0.07,
-        curRFxy = -0.024,
-        curRFz = 0.047
-    },
-    ["5:3"] = {
-        curxy = -0.052,
-        curz = 0.105,
-        curARxy = -0.036,
-        curARz = 0.07,
-        curRFxy = -0.024,
-        curRFz = 0.047
-    },
-    ["16:9"] = {
-        curxy = -0.056,
-        curz = 0.104,
-        curARxy = -0.037,
-        curARz = 0.07,
-        curRFxy = -0.026,
-        curRFz = 0.047
-    },
-
-    -- need to investigate the issue with 16:9 clients without widescreenfix
-    -- ItТs not clear how to distinguish people with a 16:9 fix from those who donТt have it
-    -- if widescreen fix is not installed but widescreen mode is enabled in the settings, the values should be like this:
-
-    ["16:9noWSF"] = {
-        curxy = -0.043,
-        curz = 0.079,
-        curARxy = -0.028,
-        curARz = 0.052,
-        curRFxy = -0.019,
-        curRFz = 0.035
-    }
-}
-
 local mainSoundStream = loadAudioStream()
 local reserveSoundStream = loadAudioStream()
 
-function getCurrentWeaponAngle(aspect, weapon)
-    if aspect == "unknown" then
-        aspect = "4:3"
-    end
-
-    if (weapon >= 22 and weapon <= 29) or weapon == 32 then
-        return { anglesPerAspectRatio[aspect].curxy, anglesPerAspectRatio[aspect].curz }
-    elseif weapon == 30 or weapon == 31 then
-        return { anglesPerAspectRatio[aspect].curARxy, anglesPerAspectRatio[aspect].curARz }
-    elseif weapon == 33 then
-        return { anglesPerAspectRatio[aspect].curRFxy, anglesPerAspectRatio[aspect].curRFz }
-    end
-
-    return { 0.0, 0.0 }
-end
 
 function createTemporaryTracer(tracePed, seconds)
     local start = os.clock()
@@ -1111,7 +1153,7 @@ function main()
                             end
 
                             for k, aspect in pairs(aspects) do
-                                local p1x, p1y, p1z, p2x, p2y, p2z = processAimLine(data, aspect)
+                                local p1x, p1y, p1z, p2x, p2y, p2z = mod.processAimLine(data, aspect)
 
                                 if cfg.options.debugNeedAimLinesFull then
                                     drawDebugLine(p1x, p1y, p1z, p2x, p2y, p2z, 0xff00ffff, 0xffffffff, 0xff348cb2)
@@ -1146,7 +1188,7 @@ function main()
                 end
 
                 for k, aspect in pairs(aspects) do
-                    local p1x, p1y, p1z, p2x, p2y, p2z = processAimLine(playerPedAimData, aspect)
+                    local p1x, p1y, p1z, p2x, p2y, p2z = mod.processAimLine(playerPedAimData, aspect)
 
                     if cfg.options.debugNeedAimLineFull then
                         drawDebugLine(p1x, p1y, p1z, p2x, p2y, p2z, 0xff00ffff, 0xffffffff, 0xff348cb2)
@@ -1199,31 +1241,6 @@ function main()
             print("temp threads", k, v:status())
         end
     end
-end
-
-function processAimLine(data, aspect)
-    -- data.weapon
-    local currentWeaponAngle = getCurrentWeaponAngle(aspect, data.weapon)
-
-    local frontAngleXY = math.atan2(-data.camFrontY, -data.camFrontX)
-    local frontAngleZ = 1.5708 - math.acos(data.camFrontZ)
-
-    -- a small offset is needed because the camera is behind the player model and it cannot be ignored by processLineOfSight
-    -- NOTE: https://github.com/THE-FYP/MoonAdditions/blob/659eb22d2217fd5870e8e1ead797a2175d314337/src/lua_general.cpp#L353
-
-    local p1x = data.camPosX - 2.5 * math.sin(1.5708 + frontAngleZ + currentWeaponAngle[2]) *
-        math.cos(frontAngleXY + currentWeaponAngle[1])
-    local p1y = data.camPosY - 2.5 * math.sin(1.5708 + frontAngleZ + currentWeaponAngle[2]) *
-        math.sin(frontAngleXY + currentWeaponAngle[1])
-    local p1z = data.camPosZ - 2.5 * math.cos(1.5708 + frontAngleZ + currentWeaponAngle[2])
-
-    local p2x = data.camPosX - 250 * math.sin(1.5708 + frontAngleZ + currentWeaponAngle[2]) *
-        math.cos(frontAngleXY + currentWeaponAngle[1])
-    local p2y = data.camPosY - 250 * math.sin(1.5708 + frontAngleZ + currentWeaponAngle[2]) *
-        math.sin(frontAngleXY + currentWeaponAngle[1])
-    local p2z = data.camPosZ - 250 * math.cos(1.5708 + frontAngleZ + currentWeaponAngle[2])
-
-    return p1x, p1y, p1z, p2x, p2y, p2z
 end
 
 -- function onSendPacket(id, bitStream, priority, reliability, orderingChannel)
@@ -1295,7 +1312,7 @@ end
 -- sampev
 function sampev.onSendAimSync(data)
     if cfg.options.debug and cfg.options.debugNeedAimLine and data.camMode ~= 4 and data.camMode ~= 18 then
-        local hit, realAspect = getRealAspectRatioByWeirdValue(data[aspectRatioKey])
+        local hit, realAspect = mod.getRealAspectRatioByWeirdValue(data[aspectRatioKey])
 
         playerPedAimData = {
             camMode = data.camMode,
@@ -1322,7 +1339,7 @@ function sampev.onAimSync(playerId, data)
         local res, char = sampGetCharHandleBySampPlayerId(playerId)
         if res then
             local nick = sampGetPlayerNickname(playerId)
-            local hit, realAspect = getRealAspectRatioByWeirdValue(data[aspectRatioKey])
+            local hit, realAspect = mod.getRealAspectRatioByWeirdValue(data[aspectRatioKey])
 
             local playerAimData = {
                 camMode = data.camMode,
@@ -1358,7 +1375,7 @@ function sampev.onAimSync(playerId, data)
                 end
 
                 for k, aspect in pairs(aspects) do
-                    local p1x, p1y, p1z, p2x, p2y, p2z = processAimLine(playerAimData, aspect)
+                    local p1x, p1y, p1z, p2x, p2y, p2z = mod.processAimLine(playerAimData, aspect)
 
                     local result, colPoint = processLineOfSight(p1x, p1y, p1z, p2x, p2y, p2z, true, true, true, true,
                         true, true, true, true)
