@@ -747,10 +747,6 @@ saveCfg()
 local tempThreads = {}
 
 local wraith_passive_lastused = 0
-local needToTriggerAimedPed = false
-local needToTriggerAimedPedSniper = false
-local needToTriggerAimedVehicle = false
-local wraith_passive_triggeredbyped = false
 
 local wraith_tactical_active = false
 local wraith_tactical_lastused = 0
@@ -878,31 +874,53 @@ function main()
 end
 
 --passive
+local TRACE_PEDS = {}
 function processPassive()
-    -- TODO: rework wraith_passive_triggeredbyped logic
-    if needToTriggerAimedPed then
-        needToTriggerAimedPed = false
-        if cfg.passive.enable and os.clock() - cfg.passive.cooldown > wraith_passive_lastused then
-            triggerPassive('aiming', wraith_passive_triggeredbyped)
+    if cfg.passive.enable and cfg.passive.showTempTracer then
+        if #TRACE_PEDS > 0 then
+            for k, v in pairs(TRACE_PEDS) do
+                if doesCharExist(k) then
+                    if os.clock() - TRACE_PEDS[k] < 5 then
+                        local x, y, z = getCharCoordinates(playerPed)
+                        local mX, mY, mZ = getCharCoordinates(tracePed)
+
+                        drawDebugLine(x, y, z, mX, mY, mZ, 0xffFF00FF, 0xffFF00FF, 0xffFF00FF)
+                    else
+                        TRACE_PEDS[k] = nil
+                    end
+                else
+                    TRACE_PEDS[k] = nil
+                end
+            end
         end
     end
+end
 
-    if needToTriggerAimedPedSniper then
-        needToTriggerAimedPedSniper = false
-        if cfg.passive.enable and os.clock() - cfg.passive.cooldown > wraith_passive_lastused then
-            triggerPassive('sniper', wraith_passive_triggeredbyped)
+function passiveCharBeingAimedByChar(ped, char, weapon)
+    if cfg.passive.enable then
+        if doesCharExist(ped) and ped == playerPed then
+            if weapon == 34 then
+                triggerPassive('sniper', char)
+            else
+                triggerPassive('aiming', char)
+            end
         end
     end
+end
 
-    if needToTriggerAimedVehicle then
-        needToTriggerAimedVehicle = false
-        if cfg.passive.enable and os.clock() - cfg.passive.cooldown > wraith_passive_lastused then
-            triggerPassive('vehicle', wraith_passive_triggeredbyped)
+function passiveVehicleBeingAimedByChar(car, char, weapon)
+    if cfg.passive.enable then
+        if isCharInAnyCar(playerPed) and car == getCarPointer(storeCarCharIsInNoSave(playerPed)) then
+            triggerPassive('vehicle', char)
         end
     end
 end
 
 function triggerPassive(typ, enemyPed)
+    local needWarn = false
+    if os.clock() - cfg.passive.cooldown > wraith_passive_lastused then
+        needWarn = true
+    end
     wraith_passive_lastused = os.clock()
     if doesCharExist(enemyPed) then
         local _, id = sampGetPlayerIdByCharHandle(enemyPed)
@@ -913,17 +931,23 @@ function triggerPassive(typ, enemyPed)
 
             local dist = math.floor(getDistanceBetweenCoords3d(x, y, z, mX, mY, mZ))
             if typ == "aiming" then
-                playRandomFromCategory('aiming')
+                if needWarn then
+                    playRandomFromCategory('aiming')
+                end
                 if cfg.passive.printStyledString then
                     printStyledString(string.format("AIMED by %s [%s] (%sm)", nick, id, dist), 5000, 5)
                 end
             elseif typ == "sniper" then
-                playRandomFromCategory('sniper')
+                if needWarn then
+                    playRandomFromCategory('sniper')
+                end
                 if cfg.passive.printStyledString then
                     printStyledString(string.format("SNIPER!!! %s [%s] (%sm)", nick, id, dist), 3000, 5)
                 end
             elseif typ == "vehicle" then
-                playRandomFromCategory('vehicle')
+                if needWarn then
+                    playRandomFromCategory('vehicle')
+                end
                 if cfg.passive.printStyledString then
                     printStyledString(string.format("DANGER!!! %s [%s] (%sm)", nick, id, dist), 3000, 5)
                 end
@@ -988,6 +1012,7 @@ function processTactical()
                             local chatDisplayModeToRestore = sampGetChatDisplayMode()
 
                             setCurrentCharWeapon(playerPed, 0)
+                            setTimeOfDay(wraith_tactical_hour, 0)
                             forceWeatherNow(wraith_tactical_weather)
 
                             wraith_tactical_active = true
@@ -1002,8 +1027,8 @@ function processTactical()
                                         wraith_tactical_active = false
                                     end
                                 end
-                                setTimeOfDay(hoursToRestore, minsToRestore)
                                 forceWeatherNow(weatherToRestore)
+                                setTimeOfDay(hoursToRestore, minsToRestore)
 
                                 displayHud(true)
                                 sampSetChatDisplayMode(chatDisplayModeToRestore)
@@ -1126,7 +1151,7 @@ function sampev.onAimSync(playerId, data)
     if sampIsPlayerConnected(playerId) then
         local res, char = sampGetCharHandleBySampPlayerId(playerId)
         if res then
-            local nick = sampGetPlayerNickname(playerId)
+            -- local nick = sampGetPlayerNickname(playerId)
             local hit, realAspect = mod.getRealAspectRatioByWeirdValue(data[aspectRatioKey])
 
             local playerAimData = {
@@ -1165,19 +1190,10 @@ function sampev.onAimSync(playerId, data)
                         true, true, true, true)
                     if result then
                         if colPoint.entityType == 3 and colPoint.entity == getCharPointer(playerPed) then
-                            if playerAimData.weapon == 34 then
-                                wraith_passive_triggeredbyped = char
-                                needToTriggerAimedPedSniper = true
-                            else
-                                wraith_passive_triggeredbyped = char
-                                needToTriggerAimedPed = true
-                            end
+                            passiveCharBeingAimedByChar(playerPed, char, playerAimData.weapon)
                         end
                         if colPoint.entityType == 2 and isCharInAnyCar(playerPed) then
-                            if colPoint.entity == getCarPointer(storeCarCharIsInNoSave(playerPed)) then
-                                wraith_passive_triggeredbyped = char
-                                needToTriggerAimedVehicle = true
-                            end
+                            passiveVehicleBeingAimedByChar(colPoint.entity, char, playerAimData.weapon)
                         end
                     end
                 end
@@ -1210,7 +1226,7 @@ end
 CURRENT_RANDOM_SOUND = getRandomSoundName()
 
 function playMainSoundNow(path)
-    if cfg.audio.enable then
+    if cfg.audio.enable and cfg.audio.volume ~= 0 then
         stopMainSoundNow()
         if doesFileExist(path) then
             mainSoundStream = loadAudioStream(path)
@@ -1238,7 +1254,7 @@ end
 
 -- todo fix dry
 function playReserveSoundNow(path)
-    if cfg.audio.enable then
+    if cfg.audio.enable and cfg.audio.volume ~= 0 then
         stopReserveSoundNow()
         if doesFileExist(path) then
             reserveSoundStream = loadAudioStream(path)
@@ -1597,6 +1613,8 @@ function openMenu(pos)
                         1, function(v)
                             saveCfg()
                         end),
+
+                    createEmptyLine(),
                 },
             }
         }
