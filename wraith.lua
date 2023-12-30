@@ -18,15 +18,15 @@ do
     mod._VERSION = "0.0.1"
 
     mod.aspectRatios = {
-        [63] = "5:4", -- 1,25
-        [85] = "4:3", -- 1,333333333333333
-        [98] = "43:18", -- 2,388888888888889
-        [127] = "3:2", -- 1,5
+        [63] = "5:4",    -- 1,25
+        [85] = "4:3",    -- 1,333333333333333
+        [98] = "43:18",  -- 2,388888888888889
+        [127] = "3:2",   -- 1,5
         [143] = "25:16", -- 1,5625
         [153] = "16:10", -- 1,6
-        [169] = "5:3", -- 1,666666666666667
+        [169] = "5:3",   -- 1,666666666666667
         -- [196] = "16:9 (alt)", -- 1,771084337349398
-        [198] = "16:9" -- 1,777777777777778
+        [198] = "16:9"   -- 1,777777777777778
     }
 
     mod.approximateAspectRatio = { {
@@ -705,13 +705,6 @@ local cfg = inicfg.load({
     options = {
         welcomeMessage = true,
         language = defaultLanguage,
-        debug = false,
-        debugNeedAimLines = true,
-        debugNeedAimLinesFull = true,
-        debugNeedAimLinesLOS = true,
-        debugNeedAimLine = true,
-        debugNeedAimLineFull = true,
-        debugNeedAimLineLOS = true
     },
     audio = {
         language = defaultLanguage,
@@ -765,9 +758,6 @@ local wraith_tactical_active = false
 local wraith_tactical_lastused = 0
 local wraith_tactical_weather = 478
 local wraith_tactical_hour = 14
-
-local playersAimData = {}
-local playerPedAimData = false
 
 local requestToUnload = false
 
@@ -1140,72 +1130,6 @@ function main()
             end
         end
 
-        if cfg.options.debug and (cfg.options.debugNeedAimLines) then
-            for nick, data in pairs(playersAimData) do
-                if sampIsPlayerConnected(data.playerId) then
-                    local result, ped = sampGetCharHandleBySampPlayerId(data.playerId)
-                    if result and sampGetPlayerNickname(data.playerId) == nick then
-                        if cfg.options.debugNeedAimLines and data.camMode ~= 4 then
-                            local aspects = { data.realAspect }
-
-                            if data.realAspect == "16:9" then
-                                aspects[2] = "16:9noWSF"
-                            end
-
-                            for k, aspect in pairs(aspects) do
-                                local p1x, p1y, p1z, p2x, p2y, p2z = mod.processAimLine(data, aspect)
-
-                                if cfg.options.debugNeedAimLinesFull then
-                                    drawDebugLine(p1x, p1y, p1z, p2x, p2y, p2z, 0xff00ffff, 0xffffffff, 0xff348cb2)
-                                end
-
-                                if cfg.options.debugNeedAimLinesLOS then
-                                    local result, colPoint =
-                                        processLineOfSight(p1x, p1y, p1z, p2x, p2y, p2z, true, true, true, true, true,
-                                            true, true, true)
-                                    if result then
-                                        drawDebugLine(p1x, p1y, p1z, colPoint.pos[1], colPoint.pos[2], colPoint.pos[3],
-                                            0xff004cff, 0xff004cff, 0xff004cff)
-                                    end
-                                end
-                            end
-                        end
-                    else
-                        playersAimData[nick] = nil
-                    end
-                else
-                    playersAimData[nick] = nil
-                end
-            end
-        end
-
-        if cfg.options.debug and cfg.options.debugNeedAimLine and playerPedAimData then
-            if cfg.options.debugNeedAimLine then
-                local aspects = { playerPedAimData.realAspect }
-
-                if playerPedAimData.realAspect == "16:9" then
-                    aspects[2] = "16:9noWSF"
-                end
-
-                for k, aspect in pairs(aspects) do
-                    local p1x, p1y, p1z, p2x, p2y, p2z = mod.processAimLine(playerPedAimData, aspect)
-
-                    if cfg.options.debugNeedAimLineFull then
-                        drawDebugLine(p1x, p1y, p1z, p2x, p2y, p2z, 0xff00ffff, 0xffffffff, 0xff348cb2)
-                    end
-
-                    if cfg.options.debugNeedAimLineLOS then
-                        local result, colPoint = processLineOfSight(p1x, p1y, p1z, p2x, p2y, p2z, true, true, true,
-                            true, true, true, true, true)
-                        if result then
-                            drawDebugLine(p1x, p1y, p1z, colPoint.pos[1], colPoint.pos[2], colPoint.pos[3], 0xff004cff,
-                                0xff004cff, 0xff004cff)
-                        end
-                    end
-                end
-            end
-        end
-
         -- TODO: rework wraith_passive_triggeredbyped logic
         if needToTriggerAimedPed then
             needToTriggerAimedPed = false
@@ -1310,29 +1234,6 @@ end
 -- end
 
 -- sampev
-function sampev.onSendAimSync(data)
-    if cfg.options.debug and cfg.options.debugNeedAimLine and data.camMode ~= 4 and data.camMode ~= 18 then
-        local hit, realAspect = mod.getRealAspectRatioByWeirdValue(data[aspectRatioKey])
-
-        playerPedAimData = {
-            camMode = data.camMode,
-            camFrontX = data.camFront.x,
-            camFrontY = data.camFront.y,
-            camFrontZ = data.camFront.z,
-            camPosX = data.camPos.x,
-            camPosY = data.camPos.y,
-            camPosZ = data.camPos.z,
-            aimZ = data.aimZ,
-            camExtZoom = data.camExtZoom,
-            weaponState = data.weaponState,
-            aspectRatio = data[aspectRatioKey],
-
-            realAspectHit = hit,
-            realAspect = realAspect,
-            weapon = getCurrentCharWeapon(playerPed)
-        }
-    end
-end
 
 function sampev.onAimSync(playerId, data)
     if sampIsPlayerConnected(playerId) then
@@ -1359,10 +1260,6 @@ function sampev.onAimSync(playerId, data)
                 realAspect = realAspect,
                 weapon = getCurrentCharWeapon(char)
             }
-
-            if cfg.options.debug and (cfg.options.debugNeedAimLines) then
-                playersAimData[nick] = playerAimData
-            end
 
             -- TODO 27 when cant see ped?
             if (data.camMode ~= 4 and
