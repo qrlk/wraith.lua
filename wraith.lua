@@ -744,8 +744,6 @@ saveCfg()
 
 --
 
-local DEBUG_ENABLE_WEATHER_BROWSE = false
-
 local tempThreads = {}
 
 local wraith_passive_lastused = 0
@@ -816,83 +814,6 @@ function triggerPassive(typ, enemyPed)
     end
 end
 
-function getRandomSoundName()
-    local temp = {}
-    for k, v in pairs(audioLines) do
-        for kk, vv in pairs(v) do
-            table.insert(temp, vv)
-        end
-    end
-    local random = temp[math.random(#temp)]
-    temp = nil
-    return random
-end
-
-local CURRENT_RANDOM_SOUND = getRandomSoundName()
-
-function playMainSoundNow(path)
-    if cfg.audio.enable then
-        stopMainSoundNow()
-        if doesFileExist(path) then
-            mainSoundStream = loadAudioStream(path)
-            if cfg.audio.volume ~= 0 and string.find(path, "wraith_voices") then
-                setAudioStreamVolume(mainSoundStream, cfg.audio.volume + cfg.audio.quietOffset)
-            else
-                setAudioStreamVolume(mainSoundStream, cfg.audio.volume)
-            end
-
-            setAudioStreamState(mainSoundStream, as_action.PLAY)
-        else
-            if not cfg.audio.ignoreMissing then
-                sampAddChatMessage(getMessage('cantFindResources') .. path, -1)
-                sampAddChatMessage(getMessage('pleaseDownloadResources'), -1)
-            end
-        end
-    end
-end
-
-function stopMainSoundNow()
-    if mainSoundStream then
-        setAudioStreamState(mainSoundStream, as_action.STOP)
-    end
-end
-
--- todo fix dry
-function playReserveSoundNow(path)
-    if cfg.audio.enable then
-        stopReserveSoundNow()
-        if doesFileExist(path) then
-            reserveSoundStream = loadAudioStream(path)
-            if cfg.audio.volume ~= 0 and
-                (string.find(path, "wraith_voices") or string.find(path, "tactical.mp3") or
-                    string.find(path, "tactical_instant.mp3")) then
-                setAudioStreamVolume(reserveSoundStream, cfg.audio.volume + cfg.audio.quietOffset)
-            else
-                setAudioStreamVolume(reserveSoundStream, cfg.audio.volume)
-            end
-
-            setAudioStreamState(reserveSoundStream, as_action.PLAY)
-        else
-            if not cfg.audio.ignoreMissing then
-                sampAddChatMessage(getMessage('cantFindResources') .. path, -1)
-                sampAddChatMessage(getMessage('pleaseDownloadResources'), -1)
-            end
-        end
-    end
-end
-
-function stopReserveSoundNow()
-    if reserveSoundStream then
-        setAudioStreamState(reserveSoundStream, as_action.STOP)
-    end
-end
-
-function playRandomFromCategory(category)
-    local tempSoundPath = getWorkingDirectory() .. "\\resource\\wraith\\" .. cfg.audio.language .. "\\" ..
-        audioLines[category][math.random(#audioLines[category])]
-
-    playMainSoundNow(tempSoundPath)
-end
 
 local radio_were_disabled = false
 
@@ -934,43 +855,6 @@ function main()
 
     if getVolume().radio == 0 then
         radio_were_disabled = true
-    end
-
-    if DEBUG_ENABLE_WEATHER_BROWSE then
-        local weather = 478
-        local hour = 14
-
-        local font_flag = require('moonloader').font_flag
-        local my_font = renderCreateFont('Verdana', 12, font_flag.BOLD + font_flag.SHADOW)
-        while DEBUG_ENABLE_WEATHER_BROWSE do
-            wait(0)
-            renderFontDrawText(my_font, string.format('W: %s || H: %s', weather, hour), 100, 400, 0xFFFFFFFF)
-
-            forceWeatherNow(weather)
-            setTimeOfDay(hour, 0)
-
-            if true and (isKeyDown(0x25) or isKeyDown(0x26) or isKeyDown(0x27) or isKeyDown(0x28)) then
-                if isKeyDown(0x25) then
-                    -- left
-                    print(string.format('left'), 1, 1)
-                    weather = weather - 1
-                elseif isKeyDown(0x26) then
-                    -- up
-                    print(string.format('up'), 1, 1)
-                    hour = hour + 1
-                elseif isKeyDown(0x27) then
-                    -- right
-                    print(string.format('right'), 1, 1)
-                    weather = weather + 1
-                elseif isKeyDown(0x28) then
-                    -- down
-                    print(string.format('down'), 1, 1)
-                    hour = hour - 1
-                end
-
-                wait(100)
-            end
-        end
     end
 
     sampRegisterChatCommand('wraith', function()
@@ -1307,6 +1191,85 @@ function sampev.onSendPlayerSync(data)
 end
 
 -- audio
+
+function getRandomSoundName()
+    local temp = {}
+    for k, v in pairs(audioLines) do
+        for kk, vv in pairs(v) do
+            table.insert(temp, vv)
+        end
+    end
+    local random = temp[math.random(#temp)]
+    temp = nil
+    return random
+end
+
+local CURRENT_RANDOM_SOUND = getRandomSoundName()
+
+function playMainSoundNow(path)
+    if cfg.audio.enable then
+        stopMainSoundNow()
+        if doesFileExist(path) then
+            mainSoundStream = loadAudioStream(path)
+            if cfg.audio.volume ~= 0 and string.find(path, "wraith_voices") then
+                setAudioStreamVolume(mainSoundStream, cfg.audio.volume + cfg.audio.quietOffset)
+            else
+                setAudioStreamVolume(mainSoundStream, cfg.audio.volume)
+            end
+
+            setAudioStreamState(mainSoundStream, as_action.PLAY)
+        else
+            if not cfg.audio.ignoreMissing then
+                sampAddChatMessage(getMessage('cantFindResources') .. path, -1)
+                sampAddChatMessage(getMessage('pleaseDownloadResources'), -1)
+            end
+        end
+    end
+end
+
+function stopMainSoundNow()
+    if mainSoundStream then
+        setAudioStreamState(mainSoundStream, as_action.STOP)
+    end
+end
+
+-- todo fix dry
+function playReserveSoundNow(path)
+    if cfg.audio.enable then
+        stopReserveSoundNow()
+        if doesFileExist(path) then
+            reserveSoundStream = loadAudioStream(path)
+            if cfg.audio.volume ~= 0 and
+                (string.find(path, "wraith_voices") or string.find(path, "tactical.mp3") or
+                    string.find(path, "tactical_instant.mp3")) then
+                setAudioStreamVolume(reserveSoundStream, cfg.audio.volume + cfg.audio.quietOffset)
+            else
+                setAudioStreamVolume(reserveSoundStream, cfg.audio.volume)
+            end
+
+            setAudioStreamState(reserveSoundStream, as_action.PLAY)
+        else
+            if not cfg.audio.ignoreMissing then
+                sampAddChatMessage(getMessage('cantFindResources') .. path, -1)
+                sampAddChatMessage(getMessage('pleaseDownloadResources'), -1)
+            end
+        end
+    end
+end
+
+function stopReserveSoundNow()
+    if reserveSoundStream then
+        setAudioStreamState(reserveSoundStream, as_action.STOP)
+    end
+end
+
+function playRandomFromCategory(category)
+    local tempSoundPath = getWorkingDirectory() .. "\\resource\\wraith\\" .. cfg.audio.language .. "\\" ..
+        audioLines[category][math.random(#audioLines[category])]
+
+    playMainSoundNow(tempSoundPath)
+end
+
 function playTestSound()
     local tempSoundPath = getWorkingDirectory() .. "\\resource\\wraith\\" .. cfg.audio.language .. "\\" ..
         CURRENT_RANDOM_SOUND
