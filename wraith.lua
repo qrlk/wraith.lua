@@ -766,54 +766,7 @@ local requestToUnload = false
 local mainSoundStream = loadAudioStream()
 local reserveSoundStream = loadAudioStream()
 
-
-function createTemporaryTracer(tracePed, seconds)
-    local start = os.clock()
-    while start + seconds > os.clock() do
-        wait(0)
-        if doesCharExist(tracePed) then
-            local x, y, z = getCharCoordinates(playerPed)
-            local mX, mY, mZ = getCharCoordinates(tracePed)
-
-            drawDebugLine(x, y, z, mX, mY, mZ, 0xffFF00FF, 0xffFF00FF, 0xffFF00FF)
-        end
-    end
-end
-
-function triggerPassive(typ, enemyPed)
-    wraith_passive_lastused = os.clock()
-    if doesCharExist(enemyPed) then
-        local _, id = sampGetPlayerIdByCharHandle(enemyPed)
-        if _ and sampIsPlayerConnected(id) then
-            local nick = sampGetPlayerNickname(id)
-            local x, y, z = getCharCoordinates(playerPed)
-            local mX, mY, mZ = getCharCoordinates(enemyPed)
-
-            local dist = math.floor(getDistanceBetweenCoords3d(x, y, z, mX, mY, mZ))
-            if typ == "aiming" then
-                playRandomFromCategory('aiming')
-                if cfg.passive.printStyledString then
-                    printStyledString(string.format("AIMED by %s [%s] (%sm)", nick, id, dist), 5000, 5)
-                end
-            elseif typ == "sniper" then
-                playRandomFromCategory('sniper')
-                if cfg.passive.printStyledString then
-                    printStyledString(string.format("SNIPER!!! %s [%s] (%sm)", nick, id, dist), 3000, 5)
-                end
-            elseif typ == "vehicle" then
-                playRandomFromCategory('vehicle')
-                if cfg.passive.printStyledString then
-                    printStyledString(string.format("DANGER!!! %s [%s] (%sm)", nick, id, dist), 3000, 5)
-                end
-            end
-
-            if cfg.passive.showTempTracer and enemyPed then
-                table.insert(tempThreads, lua_thread.create(createTemporaryTracer, enemyPed, 5))
-            end
-        end
-    end
-end
-
+local CURRENT_RANDOM_SOUND = ""
 
 local radio_were_disabled = false
 
@@ -901,139 +854,12 @@ function main()
     while true do
         wait(0)
 
-        if cfg.tactical.enable and ((isKeyDown(0xA4) or not cfg.tactical.alt) and wasKeyPressed(cfg.tactical.key)) then
-            if not sampIsChatInputActive() and not isSampfuncsConsoleActive() and not sampIsDialogActive() then
-                if isCharOnFoot(playerPed) and not isCharDead(playerPed) then
-                    if os.clock() - cfg.tactical.cooldown > wraith_tactical_lastused then
-                        table.insert(tempThreads, lua_thread.create(function()
-                            if cfg.tactical.instant then
-                                if cfg.tactical.key ~= 0x51 or readMemory(getCharPointer(playerPed) + 0x528, 1, false) ==
-                                    19 then
-                                    wait(200)
-                                else
-                                    wait(100)
-                                    setGameKeyState(7, 1)
-                                    wait(100)
-                                end
-
-                                playReserveSoundNow(phasingInstantSoundPath)
-                                wait(50)
-                                playRandomFromCategory('tactical')
-                            else
-                                playReserveSoundNow(phasingSoundPath)
-                                -- todo fix dry
-
-                                printStyledString(getMessage('phasingStart1') .. key.id_to_name(cfg.tactical.key) ..
-                                    getMessage('phasingStart2'), 2000, 5)
-                                if cfg.tactical.key ~= 0x51 or readMemory(getCharPointer(playerPed) + 0x528, 1, false) ==
-                                    19 then
-                                    wait(200)
-                                else
-                                    wait(100)
-                                    setGameKeyState(7, 1)
-                                    wait(100)
-                                end
-
-                                wait(500)
-                                playRandomFromCategory('tactical')
-                                wait(1500)
-                            end
-                            if not cfg.tactical.instant and isKeyDown(cfg.tactical.key) then
-                                wraith_tactical_active = false
-                                printStyledString(getMessage('phasingCanceled'), 2000, 5)
-                                stopReserveSoundNow()
-                                playRandomFromCategory('no')
-                                wait(2000)
-                            else
-                                local weaponToRestore = getCurrentCharWeapon(playerPed)
-                                local hoursToRestore, minsToRestore = getTimeOfDay()
-                                local weatherToRestore = readMemory(0xC81320, 2, true)
-                                local chatDisplayModeToRestore = sampGetChatDisplayMode()
-
-                                setCurrentCharWeapon(playerPed, 0)
-                                forceWeatherNow(wraith_tactical_weather)
-
-                                wraith_tactical_active = true
-                                displayHud(false)
-                                sampSetChatDisplayMode(0)
-
-                                table.insert(tempThreads, lua_thread.create(function()
-                                    while wraith_tactical_active and not isCharDead(playerPed) do
-                                        wait(0)
-                                        setTimeOfDay(wraith_tactical_hour, 0)
-                                        if isCharDead(playerPed) then
-                                            wraith_tactical_active = false
-                                        end
-                                    end
-                                    setTimeOfDay(hoursToRestore, minsToRestore)
-                                    forceWeatherNow(weatherToRestore)
-
-                                    displayHud(true)
-                                    sampSetChatDisplayMode(chatDisplayModeToRestore)
-                                end))
-
-                                while wraith_tactical_active and not isCharDead(playerPed) do
-                                    wait(0)
-                                    setGameKeyState(5, 0)
-                                    setGameKeyState(6, 0)
-                                    setGameKeyState(7, 0)
-                                    setGameKeyState(14, 0)
-                                    setGameKeyState(15, 0)
-                                    setGameKeyState(17, 0)
-                                end
-
-                                if hasCharGotWeapon(playerPed, weaponToRestore) then
-                                    setCurrentCharWeapon(playerPed, weaponToRestore)
-                                end
-                            end
-                        end))
-
-                        -- blocking passive because we are underground
-                        local start_wait = os.clock()
-                        wait(4000)
-                        while os.clock() - start_wait < (cfg.tactical.instant and 4.5 or 6.5) do
-                            wait(0)
-                            if wraith_tactical_active then
-                                wait(100)
-                            else
-                                break
-                            end
-                        end
-
-                        if wraith_tactical_active then
-                            wraith_tactical_active = false
-                            wraith_tactical_lastused = os.clock()
-                        end
-                    else
-                        -- cooldown voiceline
-                        playRandomFromCategory('notReady')
-                        local left = math.floor(cfg.tactical.cooldown - (os.clock() - wraith_tactical_lastused))
-                        printStringNow(string.format('%sc', left), 3000)
-                    end
-                end
-            end
+        if cfg.tactical.enable then
+            processTactical()
         end
 
-        -- TODO: rework wraith_passive_triggeredbyped logic
-        if needToTriggerAimedPed then
-            needToTriggerAimedPed = false
-            if cfg.passive.enable and os.clock() - cfg.passive.cooldown > wraith_passive_lastused then
-                triggerPassive('aiming', wraith_passive_triggeredbyped)
-            end
-        end
-
-        if needToTriggerAimedPedSniper then
-            needToTriggerAimedPedSniper = false
-            if cfg.passive.enable and os.clock() - cfg.passive.cooldown > wraith_passive_lastused then
-                triggerPassive('sniper', wraith_passive_triggeredbyped)
-            end
-        end
-
-        if needToTriggerAimedVehicle then
-            needToTriggerAimedVehicle = false
-            if cfg.passive.enable and os.clock() - cfg.passive.cooldown > wraith_passive_lastused then
-                triggerPassive('vehicle', wraith_passive_triggeredbyped)
-            end
+        if cfg.passive.enable then
+            processPassive()
         end
 
         if requestToUnload then
@@ -1050,6 +876,183 @@ function main()
         end
     end
 end
+
+--passive
+function processPassive()
+    -- TODO: rework wraith_passive_triggeredbyped logic
+    if needToTriggerAimedPed then
+        needToTriggerAimedPed = false
+        if cfg.passive.enable and os.clock() - cfg.passive.cooldown > wraith_passive_lastused then
+            triggerPassive('aiming', wraith_passive_triggeredbyped)
+        end
+    end
+
+    if needToTriggerAimedPedSniper then
+        needToTriggerAimedPedSniper = false
+        if cfg.passive.enable and os.clock() - cfg.passive.cooldown > wraith_passive_lastused then
+            triggerPassive('sniper', wraith_passive_triggeredbyped)
+        end
+    end
+
+    if needToTriggerAimedVehicle then
+        needToTriggerAimedVehicle = false
+        if cfg.passive.enable and os.clock() - cfg.passive.cooldown > wraith_passive_lastused then
+            triggerPassive('vehicle', wraith_passive_triggeredbyped)
+        end
+    end
+end
+
+function triggerPassive(typ, enemyPed)
+    wraith_passive_lastused = os.clock()
+    if doesCharExist(enemyPed) then
+        local _, id = sampGetPlayerIdByCharHandle(enemyPed)
+        if _ and sampIsPlayerConnected(id) then
+            local nick = sampGetPlayerNickname(id)
+            local x, y, z = getCharCoordinates(playerPed)
+            local mX, mY, mZ = getCharCoordinates(enemyPed)
+
+            local dist = math.floor(getDistanceBetweenCoords3d(x, y, z, mX, mY, mZ))
+            if typ == "aiming" then
+                playRandomFromCategory('aiming')
+                if cfg.passive.printStyledString then
+                    printStyledString(string.format("AIMED by %s [%s] (%sm)", nick, id, dist), 5000, 5)
+                end
+            elseif typ == "sniper" then
+                playRandomFromCategory('sniper')
+                if cfg.passive.printStyledString then
+                    printStyledString(string.format("SNIPER!!! %s [%s] (%sm)", nick, id, dist), 3000, 5)
+                end
+            elseif typ == "vehicle" then
+                playRandomFromCategory('vehicle')
+                if cfg.passive.printStyledString then
+                    printStyledString(string.format("DANGER!!! %s [%s] (%sm)", nick, id, dist), 3000, 5)
+                end
+            end
+
+            if cfg.passive.showTempTracer and enemyPed then
+                table.insert(tempThreads, lua_thread.create(createTemporaryTracer, enemyPed, 5))
+            end
+        end
+    end
+end
+
+--tactical
+function processTactical()
+    if ((isKeyDown(0xA4) or not cfg.tactical.alt) and wasKeyPressed(cfg.tactical.key)) then
+        if not sampIsChatInputActive() and not isSampfuncsConsoleActive() and not sampIsDialogActive() then
+            if isCharOnFoot(playerPed) and not isCharDead(playerPed) then
+                if os.clock() - cfg.tactical.cooldown > wraith_tactical_lastused then
+                    table.insert(tempThreads, lua_thread.create(function()
+                        if cfg.tactical.instant then
+                            if cfg.tactical.key ~= 0x51 or readMemory(getCharPointer(playerPed) + 0x528, 1, false) ==
+                                19 then
+                                wait(200)
+                            else
+                                wait(100)
+                                setGameKeyState(7, 1)
+                                wait(100)
+                            end
+
+                            playReserveSoundNow(phasingInstantSoundPath)
+                            wait(50)
+                            playRandomFromCategory('tactical')
+                        else
+                            playReserveSoundNow(phasingSoundPath)
+                            -- todo fix dry
+
+                            printStyledString(getMessage('phasingStart1') .. key.id_to_name(cfg.tactical.key) ..
+                                getMessage('phasingStart2'), 2000, 5)
+                            if cfg.tactical.key ~= 0x51 or readMemory(getCharPointer(playerPed) + 0x528, 1, false) ==
+                                19 then
+                                wait(200)
+                            else
+                                wait(100)
+                                setGameKeyState(7, 1)
+                                wait(100)
+                            end
+
+                            wait(500)
+                            playRandomFromCategory('tactical')
+                            wait(1500)
+                        end
+                        if not cfg.tactical.instant and isKeyDown(cfg.tactical.key) then
+                            wraith_tactical_active = false
+                            printStyledString(getMessage('phasingCanceled'), 2000, 5)
+                            stopReserveSoundNow()
+                            playRandomFromCategory('no')
+                            wait(2000)
+                        else
+                            local weaponToRestore = getCurrentCharWeapon(playerPed)
+                            local hoursToRestore, minsToRestore = getTimeOfDay()
+                            local weatherToRestore = readMemory(0xC81320, 2, true)
+                            local chatDisplayModeToRestore = sampGetChatDisplayMode()
+
+                            setCurrentCharWeapon(playerPed, 0)
+                            forceWeatherNow(wraith_tactical_weather)
+
+                            wraith_tactical_active = true
+                            displayHud(false)
+                            sampSetChatDisplayMode(0)
+
+                            table.insert(tempThreads, lua_thread.create(function()
+                                while wraith_tactical_active and not isCharDead(playerPed) do
+                                    wait(0)
+                                    setTimeOfDay(wraith_tactical_hour, 0)
+                                    if isCharDead(playerPed) then
+                                        wraith_tactical_active = false
+                                    end
+                                end
+                                setTimeOfDay(hoursToRestore, minsToRestore)
+                                forceWeatherNow(weatherToRestore)
+
+                                displayHud(true)
+                                sampSetChatDisplayMode(chatDisplayModeToRestore)
+                            end))
+
+                            while wraith_tactical_active and not isCharDead(playerPed) do
+                                wait(0)
+                                setGameKeyState(5, 0)
+                                setGameKeyState(6, 0)
+                                setGameKeyState(7, 0)
+                                setGameKeyState(14, 0)
+                                setGameKeyState(15, 0)
+                                setGameKeyState(17, 0)
+                            end
+
+                            if hasCharGotWeapon(playerPed, weaponToRestore) then
+                                setCurrentCharWeapon(playerPed, weaponToRestore)
+                            end
+                        end
+                    end))
+
+                    -- blocking passive because we are underground
+                    local start_wait = os.clock()
+                    wait(4000)
+                    while os.clock() - start_wait < (cfg.tactical.instant and 4.5 or 6.5) do
+                        wait(0)
+                        if wraith_tactical_active then
+                            wait(100)
+                        else
+                            break
+                        end
+                    end
+
+                    if wraith_tactical_active then
+                        wraith_tactical_active = false
+                        wraith_tactical_lastused = os.clock()
+                    end
+                else
+                    -- cooldown voiceline
+                    playRandomFromCategory('notReady')
+                    local left = math.floor(cfg.tactical.cooldown - (os.clock() - wraith_tactical_lastused))
+                    printStringNow(string.format('%sc', left), 3000)
+                end
+            end
+        end
+    end
+end
+
+-- sampev replacement
 
 -- function onSendPacket(id, bitStream, priority, reliability, orderingChannel)
 --     if id == 203 then
@@ -1204,7 +1207,7 @@ function getRandomSoundName()
     return random
 end
 
-local CURRENT_RANDOM_SOUND = getRandomSoundName()
+CURRENT_RANDOM_SOUND = getRandomSoundName()
 
 function playMainSoundNow(path)
     if cfg.audio.enable then
@@ -1310,6 +1313,19 @@ function drawDebugLine(ax, ay, az, bx, by, bz, color1, color2, color3)
         renderDrawPolygon(x1, y1, 10, 10, 10, 0.0, color1)
         renderDrawLine(x1, y1, x2, y2, 2, color2)
         renderDrawPolygon(x2, y2, 10, 10, 10, 0.0, color3)
+    end
+end
+
+function createTemporaryTracer(tracePed, seconds)
+    local start = os.clock()
+    while start + seconds > os.clock() do
+        wait(0)
+        if doesCharExist(tracePed) then
+            local x, y, z = getCharCoordinates(playerPed)
+            local mX, mY, mZ = getCharCoordinates(tracePed)
+
+            drawDebugLine(x, y, z, mX, mY, mZ, 0xffFF00FF, 0xffFF00FF, 0xffFF00FF)
+        end
     end
 end
 
