@@ -479,6 +479,20 @@ local i18n = {
             ru = "Настройка продолжительности gametext/трасера. Используйте стрелки клавиатуры."
         },
 
+        passiveSendChatWarnSetting = {
+            en = "Send this in chat",
+            ru = "Отправить в чат"
+        },
+        passiveSendChatWarnCaption = {
+            en = "Send this in chat when triggered",
+            ru = "Отправить это в чат при срабатывании"
+        },
+        passiveSendChatWarnText = {
+            en = "Gametext/tracer duration (in seconds)",
+            ru =
+            "Введите текст, который будет отправлен в чат при активации.\nВозможно вы захотите активировать анимацию 'лечь' или что-то подобное."
+        },
+
         settingWarnSoundRespectCooldown = {
             en = "Play warning voices when surprise attack",
             ru = "Воспроизводить звук при внезапной атаке"
@@ -743,13 +757,14 @@ local cfg = inicfg.load({
         warnSoundRespectCooldown = true,
         showTempTracerWarn = true,
         printStyledStringWarn = true,
+        sendChatWarn = '',
         reactDuration = 3,
         cooldown = 20
     }
 }, 'wraith')
 
 function getMessage(key)
-    if i18n.data[key][cfg.options.language] ~= nil then
+    if i18n.data[key] ~= nil and i18n.data[key][cfg.options.language] ~= nil then
         return i18n.data[key][cfg.options.language]
     end
     return ''
@@ -977,6 +992,11 @@ function triggerPassive(typ, enemyPed)
                 if doesCharExist(enemyPed) then
                     TRACE_PEDS[enemyPed] = os.clock()
                 end
+            end
+
+            if needWarn and cfg.passive.sendChatWarn ~= "" then
+                sampAddChatMessage(cfg.passive.sendChatWarn, -1)
+                --sampSendChat(cfg.passive.sendChatWarn)
             end
         end
     end
@@ -1651,6 +1671,35 @@ function openMenu(pos)
 
                     createSimpleToggle("passive", "printStyledStringWarn", getMessage("settingPassiveString"),
                         not cfg.passive.enable),
+
+                    {
+                        title = (not cfg.passive.enable and "{696969}" or "") ..
+                            getMessage('passiveSendChatWarnSetting') ..
+                            ': \'' .. (cfg.passive.sendChatWarn ~= "" and cfg.passive.sendChatWarn or "-") .. '\'',
+                        onclick = function(menu, row)
+                            sampShowDialog(778, getMessage('passiveSendChatWarnCaption'),
+                                getMessage('passiveSendChatWarnText'),
+                                getMessage('legacyChangeKeyButton1'), getMessage('legacyChangeKeyButton2'), 1)
+                            sampSetCurrentDialogEditboxText(cfg.passive.sendChatWarn)
+                            while sampIsDialogActive(778) do
+                                wait(100)
+                            end
+                            local resultMain, buttonMain, typ, input = sampHasDialogRespond(778)
+                            cfg.passive.sendChatWarn = input
+                            saveCfg()
+
+                            if buttonMain == 1 then
+                                menu[row].title = (not cfg.passive.enable and "{696969}" or "") ..
+                                    getMessage('passiveSendChatWarnSetting') ..
+                                    ': \'' ..
+                                    (cfg.passive.sendChatWarn ~= "" and cfg.passive.sendChatWarn or "-") .. '\''
+                                return true
+                            else
+                                return true
+                            end
+                        end
+                    },
+
                     createSimpleSlider("passive", "cooldown",
                         (not cfg.passive.enable and "{696969}" or "") .. getMessage('settingPassiveCooldown'),
                         getMessage('settingPassiveCooldownCaption'), "OK", 6, 100,
