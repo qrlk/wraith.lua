@@ -378,9 +378,16 @@ end
 
 --- start
 local inicfg = require "inicfg"
-local key = require 'vkeys'
+local key = false
+pcall(function() key = require 'vkeys' end)
 
-local as_action = require('moonloader').audiostream_state
+--local as_action = require('moonloader').audiostream_state
+local as_action = {
+    PAUSE = 2,
+    PLAY = 1,
+    RESUME = 3,
+    STOP = 0
+}
 
 local ffi = require("ffi")
 ffi.cdef [[
@@ -1347,7 +1354,9 @@ function processTactical()
                             playReserveSoundNow(phasingSoundPath)
                             -- todo fix dry
 
-                            printStyledString(getMessage('phasingStart1') .. key.id_to_name(cfg.tactical.key) ..
+                            printStyledString(
+                                getMessage('phasingStart1') ..
+                                (key and key.id_to_name(cfg.tactical.key) or tostring(cfg.tactical.key)) ..
                                 getMessage('phasingStart2'), 2000, 5)
                             if cfg.tactical.key ~= 0x51 or readMemory(getCharPointer(playerPed) + 0x528, 1, false) ==
                                 19 then
@@ -2106,11 +2115,12 @@ function openMenu(pos)
 
             {
                 title = (not cfg.tactical.enable and "{696969}" or "") .. getMessage("tacticalActivationMode") ..
-                    (cfg.tactical.enable and ("{ff0000}" .. (cfg.tactical.alt and "LEFT ALT + " or "") .. key.id_to_name(cfg.tactical.key)) or getMessage("tacticalActivationDisabled")),
+                    (cfg.tactical.enable and ("{ff0000}" .. (cfg.tactical.alt and "LEFT ALT + " or "") .. (key and key.id_to_name(cfg.tactical.key) or tostring(cfg.tactical.key))) or getMessage("tacticalActivationDisabled")),
                 submenu = {
                     {
                         title = (not cfg.tactical.enable and "{696969}" or "") ..
-                            getMessage("tacticalKeyName") .. key.id_to_name(cfg.tactical.key),
+                            getMessage("tacticalKeyName") ..
+                            (key and key.id_to_name(cfg.tactical.key) or tostring(cfg.tactical.key)),
                         onclick = function(menu, row)
                             sampShowDialog(777, getMessage('legacyChangeKeyTitle'), getMessage('legacyChangeKeyText'),
                                 getMessage('legacyChangeKeyButton1'), getMessage('legacyChangeKeyButton2'))
@@ -2126,7 +2136,7 @@ function openMenu(pos)
                                         if isKeyDown(i) then
                                             sampAddChatMessage(getMessage('legacyChangeKeySuccess') ..
                                                 (cfg.tactical.alt and "LEFT ALT + " or "") ..
-                                                key.id_to_name(i), -1)
+                                                (key and key.id_to_name(i) or tostring(i)), -1)
                                             cfg.tactical.key = i
                                             addOneOffSound(0.0, 0.0, 0.0, 1052)
                                             saveCfg()
