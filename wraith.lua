@@ -460,6 +460,17 @@ local i18n = {
             ru = "способность отключена"
         },
 
+
+        settingPassiveSectionAimed = {
+            en = "Reaction to aiming",
+            ru = "Реакция на прицеливание"
+        },
+
+        settingPassiveSectionWarn = {
+            en = "Reaction to a surprise attack",
+            ru = "Реакция на внезапную атаку"
+        },
+
         settingPassiveTracer = {
             en = "Show temporary tracer to enemy when ability is triggered",
             ru = "Показывать временный трасер"
@@ -483,14 +494,21 @@ local i18n = {
             en = "Send this in chat",
             ru = "Отправить в чат"
         },
+
+        settingPassiveChatWarnEmpty = {
+            en = "{696969}disabled",
+            ru = "{696969}отключено"
+        },
+
         passiveSendChatWarnCaption = {
             en = "Send this in chat when triggered",
             ru = "Отправить это в чат при срабатывании"
         },
         passiveSendChatWarnText = {
-            en = "Gametext/tracer duration (in seconds)",
+            en =
+            "Enter the text that will be sent to the chat when activated.\nYou may want to activate the 'lay down' animation or something similar.\n\nWraith.lua can fill this for u: $id - threat ID, $nick - nickname;\n$name - name, $surname - surname, $weap - threat weapon.\n\nYou can send an SMS or something else of your choice.",
             ru =
-            "Введите текст, который будет отправлен в чат при активации.\nВозможно вы захотите активировать анимацию 'лечь' или что-то подобное."
+            "Введите текст, который будет отправлен в чат при активации.\nВозможно вы захотите активировать анимацию 'лечь' или что-то подобное.\n\nЕсть замена: $id - ID угрозы, $nick - никнейм;\n$name - имя, $surname - фамилия, $weap - оружие угрозы.\n\nМожно отправить смс или что-то другое, на ваш выбор."
         },
 
         settingWarnSoundRespectCooldown = {
@@ -995,8 +1013,22 @@ function triggerPassive(typ, enemyPed)
             end
 
             if needWarn and cfg.passive.sendChatWarn ~= "" then
-                sampAddChatMessage(cfg.passive.sendChatWarn, -1)
-                --sampSendChat(cfg.passive.sendChatWarn)
+                _, id = sampGetPlayerIdByCharHandle(enemyPed)
+                if _ then
+                    local nick = sampGetPlayerNickname(playerid)
+                    local name, surname = string.match(nick, "(%g+)_(%g+)")
+                    local r = {
+                        id = id,
+                        name = name or nick,
+                        surname = surname or nick,
+                        nick = nick,
+                        weap = getweaponname(
+                            getCurrentCharWeapon(enemyPed))
+                    }
+
+                    sampAddChatMessage(string.gsub(cfg.passive.sendChatWarn, "%$(%w+)", r), -1)
+                    --sampSendChat(cfg.passive.sendChatWarn)
+                end
             end
         end
     end
@@ -1645,7 +1677,8 @@ function openMenu(pos)
                 title = (not cfg.passive.enable and "{696969}" or "") .. getMessage("settingPassiveSection"),
                 submenu = {
                     {
-                        title = (not cfg.passive.enable and "{696969}" or "") .. "Реакция на прицеливание"
+                        title = (not cfg.passive.enable and "{696969}" or "{808000}") ..
+                            getMessage('settingPassiveSectionAimed')
                     },
                     createSimpleToggle("passive", "showTempTracer", getMessage("settingPassiveTracer"),
                         not cfg.passive.enable),
@@ -1660,7 +1693,8 @@ function openMenu(pos)
                         end),
                     createEmptyLine(),
                     {
-                        title = (not cfg.passive.enable and "{696969}" or "") .. "Реакция на внезапную атаку"
+                        title = (not cfg.passive.enable and "{696969}" or "{808000}") ..
+                            getMessage('settingPassiveSectionWarn')
                     },
                     createSimpleToggle("passive", "warnSoundRespectCooldown",
                         getMessage("settingWarnSoundRespectCooldown"),
@@ -1675,7 +1709,8 @@ function openMenu(pos)
                     {
                         title = (not cfg.passive.enable and "{696969}" or "") ..
                             getMessage('passiveSendChatWarnSetting') ..
-                            ': \'' .. (cfg.passive.sendChatWarn ~= "" and cfg.passive.sendChatWarn or "-") .. '\'',
+                            ': ' ..
+                            (cfg.passive.sendChatWarn ~= "" and ('\'' .. cfg.passive.sendChatWarn .. '\'') or getMessage('settingPassiveChatWarnEmpty')),
                         onclick = function(menu, row)
                             sampShowDialog(778, getMessage('passiveSendChatWarnCaption'),
                                 getMessage('passiveSendChatWarnText'),
@@ -1691,8 +1726,8 @@ function openMenu(pos)
                             if buttonMain == 1 then
                                 menu[row].title = (not cfg.passive.enable and "{696969}" or "") ..
                                     getMessage('passiveSendChatWarnSetting') ..
-                                    ': \'' ..
-                                    (cfg.passive.sendChatWarn ~= "" and cfg.passive.sendChatWarn or "-") .. '\''
+                                    ': ' ..
+                                    (cfg.passive.sendChatWarn ~= "" and ('\'' .. cfg.passive.sendChatWarn .. '\'') or getMessage('settingPassiveChatWarnEmpty'))
                                 return true
                             else
                                 return true
@@ -1944,4 +1979,55 @@ function openMenu(pos)
         "{348cb2}/wraith v." .. thisScript().version .. " || BLASTHACK SC23 2nd PLACE", getMessage("button1"),
         getMessage("button2"), getMessage("button3"),
         pos)
+end
+
+--3rd party
+function getweaponname(weapon)
+    local names = {
+        [0] = "Fist",
+        [1] = "Brass Knuckles",
+        [2] = "Golf Club",
+        [3] = "Nightstick",
+        [4] = "Knife",
+        [5] = "Baseball Bat",
+        [6] = "Shovel",
+        [7] = "Pool Cue",
+        [8] = "Katana",
+        [9] = "Chainsaw",
+        [10] = "Purple Dildo",
+        [11] = "Dildo",
+        [12] = "Vibrator",
+        [13] = "Silver Vibrator",
+        [14] = "Flowers",
+        [15] = "Cane",
+        [16] = "Grenade",
+        [17] = "Tear Gas",
+        [18] = "Molotov Cocktail",
+        [22] = "9mm",
+        [23] = "Silenced 9mm",
+        [24] = "Desert Eagle",
+        [25] = "Shotgun",
+        [26] = "Sawnoff Shotgun",
+        [27] = "Combat Shotgun",
+        [28] = "Micro SMG/Uzi",
+        [29] = "MP5",
+        [30] = "AK-47",
+        [31] = "M4",
+        [32] = "Tec-9",
+        [33] = "Country Rifle",
+        [34] = "Sniper Rifle",
+        [35] = "RPG",
+        [36] = "HS Rocket",
+        [37] = "Flamethrower",
+        [38] = "Minigun",
+        [39] = "Satchel Charge",
+        [40] = "Detonator",
+        [41] = "Spraycan",
+        [42] = "Fire Extinguisher",
+        [43] = "Camera",
+        [44] = "Night Vis Goggles",
+        [45] = "Thermal Goggles",
+        [46] = "Parachute"
+    }
+    return names[weapon]
 end
