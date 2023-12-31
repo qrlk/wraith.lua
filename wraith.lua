@@ -1100,18 +1100,59 @@ local TRACE_PEDS = {}
 function preparePassive()
     aimline.init()
     aimline.addEventHandler(function(res)
-        local result, colPoint = processLineOfSight(res.aimline.p1x, res.aimline.p1y, res.aimline.p1z, res.aimline.p2x,
-            res.aimline.p2y, res.aimline.p2z, true, true, true, true,
-            true, true, true, true)
-        if result then
-            if colPoint.entityType == 3 and colPoint.entity == getCharPointer(playerPed) then
-                passiveCharBeingAimedByChar(playerPed, res.char, res.weapon)
-            end
-            if colPoint.entityType == 2 and isCharInAnyCar(playerPed) and car == getCarPointer(storeCarCharIsInNoSave(playerPed)) then
-                passiveVehicleBeingAimedByChar(colPoint.entity, res.char, res.weapon)
+        if cfg.passive.enable then
+            local result, colPoint = processLineOfSight(res.aimline.p1x, res.aimline.p1y, res.aimline.p1z,
+                res.aimline.p2x,
+                res.aimline.p2y, res.aimline.p2z, true, true, true, true,
+                true, true, true, true)
+            if result then
+                if colPoint.entityType == 3 and colPoint.entity == getCharPointer(playerPed) then
+                    passiveCharBeingAimedByChar(playerPed, res.char, res.weapon)
+                end
+                if colPoint.entityType == 2 and isCharInAnyCar(playerPed) and car == getCarPointer(storeCarCharIsInNoSave(playerPed)) then
+                    passiveVehicleBeingAimedByChar(colPoint.entity, res.char, res.weapon)
+                end
             end
         end
     end)
+
+    -- addEventHandler('onReceivePacket', function(id, bs)
+    --     if cfg.passive.enable and id == 206 then
+    --         local bullet = {}
+    --         local packetId = raknetBitStreamReadInt8(bs)
+    --         local playerId = raknetBitStreamReadInt8(bs)
+    --         local unknown = raknetBitStreamReadInt8(bs)
+    --         local type = raknetBitStreamReadInt8(bs)
+    --         local targetId = raknetBitStreamReadInt16(bs)
+    --         local originX = raknetBitStreamReadFloat(bs)
+    --         local originY = raknetBitStreamReadFloat(bs)
+    --         local originZ = raknetBitStreamReadFloat(bs)
+    --         local hitX = raknetBitStreamReadFloat(bs)
+    --         local hitY = raknetBitStreamReadFloat(bs)
+    --         local hitZ = raknetBitStreamReadFloat(bs)
+    --         local offsetX = raknetBitStreamReadFloat(bs)
+    --         local offsetY = raknetBitStreamReadFloat(bs)
+    --         local offsetZ = raknetBitStreamReadFloat(bs)
+    --         local weaponId = raknetBitStreamReadInt8(bs)
+    --         print(originX, originY, originZ, hitX, hitY, hitZ, offsetX, offsetY, offsetZ)
+
+    --         if offsetX ~= 0 and offsetY ~= 0 and offsetZ ~= 0 then
+    --             local result, colPoint = processLineOfSight(originX, originY, originZ, offsetX, offsetY, offsetZ, true,
+    --                 true, true, true, true, true, true, true)
+    --                 print(result, colPoint)
+    --             if result then
+    --                 print(colPoint.entityType)
+    --                 if colPoint.entityType == 3 and colPoint.entity == getCharPointer(playerPed) then
+    --                     passiveCharBeingAimedByChar(playerPed, res.char, res.weapon)
+    --                 end
+    --                 if colPoint.entityType == 2 and isCharInAnyCar(playerPed) and car == getCarPointer(storeCarCharIsInNoSave(playerPed)) then
+    --                     passiveVehicleBeingAimedByChar(colPoint.entity, res.char, res.weapon)
+    --                 end
+    --             end
+    --         end
+    --     end
+    -- end
+    -- )
 end
 
 function processPassive()
