@@ -480,6 +480,15 @@ local i18n = {
             ru = "Показывать gametext строку"
         },
 
+        settingPassiveAddOffSound = {
+            en = "Play checkpoint sound",
+            ru = "Воспроизводить звук чекпоинта"
+        },
+
+        settingPassiveWarnAddOffSound = {
+            en = "Play horn sound",
+            ru = "Воспроизводить звук гудка"
+        },
         settingPassiveDuration = {
             en = "Gametext/tracer duration (in seconds)",
             ru = "Продолжительность gametext/трасера (в сек)"
@@ -772,7 +781,9 @@ local cfg = inicfg.load({
         enable = true,
         printStyledString = true,
         showTempTracer = true,
+        addOneOffSound = false,
         warnSoundRespectCooldown = true,
+        warnAddOneOffSound = false,
         showTempTracerWarn = true,
         printStyledStringWarn = true,
         sendChatWarn = '',
@@ -975,6 +986,14 @@ function triggerPassive(typ, enemyPed)
     if doesCharExist(enemyPed) then
         local _, id = sampGetPlayerIdByCharHandle(enemyPed)
         if _ and sampIsPlayerConnected(id) then
+            if needWarn and cfg.passive.warnAddOneOffSound then
+                addOneOffSound(0.0, 0.0, 0.0, 1147)
+            end
+
+            if cfg.passive.addOneOffSound then
+                addOneOffSound(0.0, 0.0, 0.0, 1139)
+            end
+
             local nick = sampGetPlayerNickname(id)
             local x, y, z = getCharCoordinates(playerPed)
             local mX, mY, mZ = getCharCoordinates(enemyPed)
@@ -1013,7 +1032,6 @@ function triggerPassive(typ, enemyPed)
             end
 
             if needWarn and cfg.passive.sendChatWarn ~= "" then
-                _, id = sampGetPlayerIdByCharHandle(enemyPed)
                 if _ then
                     local nick = sampGetPlayerNickname(playerid)
                     local name, surname = string.match(nick, "(%g+)_(%g+)")
@@ -1685,6 +1703,8 @@ function openMenu(pos)
 
                     createSimpleToggle("passive", "printStyledString", getMessage("settingPassiveString"),
                         not cfg.passive.enable),
+                    createSimpleToggle("passive", "addOneOffSound", getMessage("settingPassiveAddOffSound"),
+                        not cfg.passive.enable),
                     createSimpleSlider("passive", "reactDuration",
                         (not cfg.passive.enable and "{696969}" or "") .. getMessage('settingPassiveDuration'),
                         getMessage('settingPassiveDurationCaption'), "OK", 1, 20,
@@ -1706,6 +1726,8 @@ function openMenu(pos)
                     createSimpleToggle("passive", "printStyledStringWarn", getMessage("settingPassiveString"),
                         not cfg.passive.enable),
 
+                    createSimpleToggle("passive", "warnAddOneOffSound", getMessage("settingPassiveWarnAddOffSound"),
+                        not cfg.passive.enable),
                     {
                         title = (not cfg.passive.enable and "{696969}" or "") ..
                             getMessage('passiveSendChatWarnSetting') ..
