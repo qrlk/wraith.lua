@@ -386,8 +386,8 @@ local i18n = {
             ru = "ресурсы не найдены"
         },
         settingAudioEnable = {
-            en = "Enable audio effects",
-            ru = "¬ключить аудиоэффекты"
+            en = "Enable audio from Apex Legends",
+            ru = "¬ключить аудио из Apex Legends"
         },
         settingIgnoreMissing = {
             en = "Ignore missing sounds",
