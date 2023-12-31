@@ -1064,38 +1064,9 @@ function main()
         writeMemory(0x4EB9A0, 3, 1218, true)
     end
 
-    aimline.init()
-    aimline.addEventHandler(function(res)
-        local result, colPoint = processLineOfSight(res.aimline.p1x, res.aimline.p1y, res.aimline.p1z, res.aimline.p2x,
-            res.aimline.p2y, res.aimline.p2z, true, true, true, true,
-            true, true, true, true)
-        if result then
-            if colPoint.entityType == 3 and colPoint.entity == getCharPointer(playerPed) then
-                passiveCharBeingAimedByChar(playerPed, res.char, res.weapon)
-            end
-            if colPoint.entityType == 2 and isCharInAnyCar(playerPed) and car == getCarPointer(storeCarCharIsInNoSave(playerPed)) then
-                passiveVehicleBeingAimedByChar(colPoint.entity, res.char, res.weapon)
-            end
-        end
-    end)
+    preparePassive()
 
-    addEventHandler('onSendPacket', function(id, bs)
-        if wraith_tactical_active and id == 207 then
-            if wraith_tactical_active then
-                raknetBitStreamSetReadOffset(bs, 120)
-                local posZ = raknetBitStreamReadFloat(bs)
-
-                local saved_write_offset = raknetBitStreamGetWriteOffset(bs)
-
-                raknetBitStreamSetWriteOffset(bs, 120)
-                raknetBitStreamWriteFloat(bs, posZ - 2.5)
-                raknetBitStreamSetWriteOffset(bs, saved_write_offset)
-
-                printStyledString(getMessage("tacticalUnderZWarning"), 100, 5)
-                return { id, bs } -- возвращаем перезаписанные значения
-            end
-        end
-    end)
+    prepareTactical()
 
     while true do
         wait(0)
@@ -1125,6 +1096,24 @@ end
 
 --passive
 local TRACE_PEDS = {}
+
+function preparePassive()
+    aimline.init()
+    aimline.addEventHandler(function(res)
+        local result, colPoint = processLineOfSight(res.aimline.p1x, res.aimline.p1y, res.aimline.p1z, res.aimline.p2x,
+            res.aimline.p2y, res.aimline.p2z, true, true, true, true,
+            true, true, true, true)
+        if result then
+            if colPoint.entityType == 3 and colPoint.entity == getCharPointer(playerPed) then
+                passiveCharBeingAimedByChar(playerPed, res.char, res.weapon)
+            end
+            if colPoint.entityType == 2 and isCharInAnyCar(playerPed) and car == getCarPointer(storeCarCharIsInNoSave(playerPed)) then
+                passiveVehicleBeingAimedByChar(colPoint.entity, res.char, res.weapon)
+            end
+        end
+    end)
+end
+
 function processPassive()
     if cfg.passive.enable and cfg.passive.showTempTracer then
         for k, v in pairs(TRACE_PEDS) do
@@ -1270,6 +1259,26 @@ function getCarModelCornersIn2d(id, handle)
 end
 
 --tactical
+function prepareTactical()
+    addEventHandler('onSendPacket', function(id, bs)
+        if wraith_tactical_active and id == 207 then
+            if wraith_tactical_active then
+                raknetBitStreamSetReadOffset(bs, 120)
+                local posZ = raknetBitStreamReadFloat(bs)
+
+                local saved_write_offset = raknetBitStreamGetWriteOffset(bs)
+
+                raknetBitStreamSetWriteOffset(bs, 120)
+                raknetBitStreamWriteFloat(bs, posZ - 2.5)
+                raknetBitStreamSetWriteOffset(bs, saved_write_offset)
+
+                printStyledString(getMessage("tacticalUnderZWarning"), 100, 5)
+                return { id, bs } -- возвращаем перезаписанные значения
+            end
+        end
+    end)
+end
+
 function processTactical()
     if ((isKeyDown(0xA4) or not cfg.tactical.alt) and wasKeyPressed(cfg.tactical.key)) then
         if not sampIsChatInputActive() and not isSampfuncsConsoleActive() and not sampIsDialogActive() then
