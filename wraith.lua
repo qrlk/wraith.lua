@@ -13,11 +13,11 @@ local enable_sentry = true     -- false to disable error reports to sentry.io
 local enable_autoupdate = true -- false to disable auto-update + disable sending initial telemetry (server, moonloader version, script version, samp nickname, virtual volume serial number)
 
 --^^ none of it works if wraith.lua is loaded as a module.
-local mod = {}
+local aimline = {}
 do
-    mod._VERSION = "0.0.1"
+    aimline._VERSION = "0.0.1"
 
-    mod.aspectRatios = {
+    aimline.aspectRatios = {
         [63] = "5:4",    -- 1,25
         [85] = "4:3",    -- 1,333333333333333
         [98] = "43:18",  -- 2,388888888888889
@@ -29,7 +29,7 @@ do
         [198] = "16:9"   -- 1,777777777777778
     }
 
-    mod.approximateAspectRatio = { {
+    aimline.approximateAspectRatio = { {
         ["start"] = 63 - 11,
         ["end"] = 63 + 11,
         ["value"] = "5:4"
@@ -63,13 +63,13 @@ do
         ["value"] = "16:9"
     } }
 
-    mod.getRealAspectRatioByWeirdValue = function(aspectRatio)
+    aimline.getRealAspectRatioByWeirdValue = function(aspectRatio)
         local hit = false
-        if mod.aspectRatios[aspectRatio] ~= nil then
+        if aimline.aspectRatios[aspectRatio] ~= nil then
             hit = true
-            return hit, mod.aspectRatios[aspectRatio]
+            return hit, aimline.aspectRatios[aspectRatio]
         end
-        for k, v in pairs(mod.approximateAspectRatio) do
+        for k, v in pairs(aimline.approximateAspectRatio) do
             if aspectRatio > v['start'] and aspectRatio < v['end'] then
                 return hit, v['value']
             end
@@ -113,7 +113,7 @@ do
 
     -- the aimline snipper is being worked on here: https://www.blast.hk/threads/198312/ https://github.com/qrlk/wraith-aimlined
 
-    mod.anglesPerAspectRatio = {
+    aimline.anglesPerAspectRatio = {
         ["5:4"] = {
             curxy = -0.04,
             curz = 0.105,
@@ -194,25 +194,25 @@ do
         }
     }
 
-    mod.getCurrentWeaponAngle = function(aspect, weapon)
+    aimline.getCurrentWeaponAngle = function(aspect, weapon)
         if aspect == "unknown" then
             aspect = "4:3"
         end
 
         if (weapon >= 22 and weapon <= 29) or weapon == 32 then
-            return { mod.anglesPerAspectRatio[aspect].curxy, mod.anglesPerAspectRatio[aspect].curz }
+            return { aimline.anglesPerAspectRatio[aspect].curxy, aimline.anglesPerAspectRatio[aspect].curz }
         elseif weapon == 30 or weapon == 31 then
-            return { mod.anglesPerAspectRatio[aspect].curARxy, mod.anglesPerAspectRatio[aspect].curARz }
+            return { aimline.anglesPerAspectRatio[aspect].curARxy, aimline.anglesPerAspectRatio[aspect].curARz }
         elseif weapon == 33 then
-            return { mod.anglesPerAspectRatio[aspect].curRFxy, mod.anglesPerAspectRatio[aspect].curRFz }
+            return { aimline.anglesPerAspectRatio[aspect].curRFxy, aimline.anglesPerAspectRatio[aspect].curRFz }
         end
 
         return { 0.0, 0.0 }
     end
 
-    mod.processAimLine = function(data, aspect)
+    aimline.processAimLine = function(data, aspect)
         -- data.weapon
-        local currentWeaponAngle = mod.getCurrentWeaponAngle(aspect, data.weapon)
+        local currentWeaponAngle = aimline.getCurrentWeaponAngle(aspect, data.weapon)
 
         local frontAngleXY = math.atan2(-data.camFrontY, -data.camFrontX)
         local frontAngleZ = 1.5708 - math.acos(data.camFrontZ)
@@ -233,6 +233,109 @@ do
         local p2z = data.camPosZ - 250 * math.cos(1.5708 + frontAngleZ + currentWeaponAngle[2])
 
         return p1x, p1y, p1z, p2x, p2y, p2z
+    end
+
+    aimline.handlers = {}
+
+    aimline.onReceivePacket = function(id, bitStream)
+        if id == 203 then
+            if #aimline.handlers > 0 then
+                local packetId = raknetBitStreamReadInt8(bitStream)
+                local playerId = raknetBitStreamReadInt8(bitStream)
+                local unknown = raknetBitStreamReadInt8(bitStream)
+                local camMode = raknetBitStreamReadInt8(bitStream)
+                local camFrontX = raknetBitStreamReadFloat(bitStream)
+                local camFrontY = raknetBitStreamReadFloat(bitStream)
+                local camFrontZ = raknetBitStreamReadFloat(bitStream)
+                local camPosX = raknetBitStreamReadFloat(bitStream)
+                local camPosY = raknetBitStreamReadFloat(bitStream)
+                local camPosZ = raknetBitStreamReadFloat(bitStream)
+                local aimZ = raknetBitStreamReadFloat(bitStream)
+                local int8 = raknetBitStreamReadInt8(bitStream)
+                local weaponState = math.floor(int8 / 64) % 4
+                local camExtZoom = int8 % 64
+                local aspectRatio = raknetBitStreamReadInt8(bitStream)
+
+                local data = {
+                    camMode = camMode,
+                    camFrontX = camFrontX,
+                    camFrontY = camFrontY,
+                    camFrontZ = camFrontZ,
+                    camPosX = camPosX,
+                    camPosY = camPosY,
+                    camPosZ = camPosZ,
+                    aimZ = aimZ,
+                    camExtZoom = camExtZoom,
+                    weaponState = weaponState,
+                    aspectRatio = aspectRatio
+                }
+
+                if sampIsPlayerConnected(playerId) then
+                    local res, char = sampGetCharHandleBySampPlayerId(playerId)
+                    if res then
+                        -- local nick = sampGetPlayerNickname(playerId)
+                        local hit, realAspect = aimline.getRealAspectRatioByWeirdValue(data.aspectRatio)
+
+                        local playerAimData = {
+                            camMode = data.camMode,
+                            camFrontX = data.camFrontX,
+                            camFrontY = data.camFrontY,
+                            camFrontZ = data.camFrontZ,
+                            camPosX = data.camPosX,
+                            camPosY = data.camPosY,
+                            camPosZ = data.camPosZ,
+                            aimZ = data.aimZ,
+                            camExtZoom = data.camExtZoom,
+                            weaponState = data.weaponState,
+                            aspectRatio = data.aspectRatio,
+
+                            playerId = playerId,
+                            realAspectHit = hit,
+                            realAspect = realAspect,
+                            weapon = getCurrentCharWeapon(char)
+                        }
+
+                        -- TODO 27 when cant see ped?
+                        if (data.camMode ~= 4 and
+                                (readMemory(getCharPointer(char) + 0x528, 1, false) == 19 or
+                                    readMemory(getCharPointer(char) + 0x528, 1, false) == 27)) or data.camMode == 55 then
+                            local aspects = { playerAimData.realAspect }
+
+                            if playerAimData.realAspect == "16:9" then
+                                aspects[2] = "16:9noWSF"
+                            end
+
+                            for k, aspect in pairs(aspects) do
+                                local p1x, p1y, p1z, p2x, p2y, p2z = aimline.processAimLine(playerAimData, aspect)
+
+                                for k, v in pairs(aimline.handlers) do
+                                    pcall(v, {
+                                        aimline = {
+                                            p1x = p1x,
+                                            p1y = p1y,
+                                            p1z = p1z,
+                                            p2x = p2x,
+                                            p2y = p2y,
+                                            p2z = p2z
+                                        },
+                                        char = char,
+                                        weapon = playerAimData.weapon
+                                    })
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    aimline.init = function()
+        addEventHandler('onReceivePacket', aimline.onReceivePacket)
+    end
+
+    aimline.addEventHandler = function(func)
+        table.insert(aimline.handlers, func)
     end
 end
 
@@ -963,6 +1066,21 @@ function main()
         writeMemory(0x4EB9A0, 3, 1218, true)
     end
 
+    aimline.init()
+    aimline.addEventHandler(function(res)
+        local result, colPoint = processLineOfSight(res.aimline.p1x, res.aimline.p1y, res.aimline.p1z, res.aimline.p2x,
+            res.aimline.p2y, res.aimline.p2z, true, true, true, true,
+            true, true, true, true)
+        if result then
+            if colPoint.entityType == 3 and colPoint.entity == getCharPointer(playerPed) then
+                passiveCharBeingAimedByChar(playerPed, res.char, res.weapon)
+            end
+            if colPoint.entityType == 2 and isCharInAnyCar(playerPed) and car == getCarPointer(storeCarCharIsInNoSave(playerPed)) then
+                passiveVehicleBeingAimedByChar(colPoint.entity, res.char, res.weapon)
+            end
+        end
+    end)
+
     while true do
         wait(0)
 
@@ -1246,131 +1364,6 @@ function processTactical()
                     playRandomFromCategory('notReady')
                     local left = math.floor(cfg.tactical.cooldown - (os.clock() - wraith_tactical_lastused))
                     printStringNow(string.format('%sc', left), 3000)
-                end
-            end
-        end
-    end
-end
-
--- sampev replacement
-
--- function onSendPacket(id, bitStream, priority, reliability, orderingChannel)
---     if id == 203 then
---         local packetId = raknetBitStreamReadInt8(bitStream)
---         local camMode = raknetBitStreamReadInt8(bitStream)
---         local camFrontX = raknetBitStreamReadFloat(bitStream)
---         local camFrontY = raknetBitStreamReadFloat(bitStream)
---         local camFrontZ = raknetBitStreamReadFloat(bitStream)
---         local camPosX = raknetBitStreamReadFloat(bitStream)
---         local camPosY = raknetBitStreamReadFloat(bitStream)
---         local camPosZ = raknetBitStreamReadFloat(bitStream)
---         local aimZ = raknetBitStreamReadFloat(bitStream)
---         local int8 = raknetBitStreamReadInt8(bitStream)
---         local weaponState = math.floor(int8 / 64) % 4
---         local camExtZoom = int8 % 64
---         local aspectRatio = raknetBitStreamReadInt8(bitStream)
-
---         local data = {
---             camMode = camMode,
---             camFrontX = camFrontX,
---             camFrontY = camFrontY,
---             camFrontZ = camFrontZ,
---             camPosX = camPosX,
---             camPosY = camPosY,
---             camPosZ = camPosZ,
---             aimZ = aimZ,
---             camExtZoom = camExtZoom,
---             weaponState = weaponState,
---             aspectRatio = aspectRatio
---         }
---     end
--- end
-
--- function onReceivePacket(id, bitStream)
---     if id == 203 then
---         local packetId = raknetBitStreamReadInt8(bitStream)
---         local playerId = raknetBitStreamReadInt8(bitStream)
---         local unknown = raknetBitStreamReadInt8(bitStream)
---         local camMode = raknetBitStreamReadInt8(bitStream)
---         local camFrontX = raknetBitStreamReadFloat(bitStream)
---         local camFrontY = raknetBitStreamReadFloat(bitStream)
---         local camFrontZ = raknetBitStreamReadFloat(bitStream)
---         local camPosX = raknetBitStreamReadFloat(bitStream)
---         local camPosY = raknetBitStreamReadFloat(bitStream)
---         local camPosZ = raknetBitStreamReadFloat(bitStream)
---         local aimZ = raknetBitStreamReadFloat(bitStream)
---         local int8 = raknetBitStreamReadInt8(bitStream)
---         local weaponState = math.floor(int8 / 64) % 4
---         local camExtZoom = int8 % 64
---         local aspectRatio = raknetBitStreamReadInt8(bitStream)
-
---         local data = {
---             camMode = camMode,
---             camFrontX = camFrontX,
---             camFrontY = camFrontY,
---             camFrontZ = camFrontZ,
---             camPosX = camPosX,
---             camPosY = camPosY,
---             camPosZ = camPosZ,
---             aimZ = aimZ,
---             camExtZoom = camExtZoom,
---             weaponState = weaponState,
---             aspectRatio = aspectRatio
---         }
---     end
--- end
-
--- sampev
-
-function sampev.onAimSync(playerId, data)
-    if sampIsPlayerConnected(playerId) then
-        local res, char = sampGetCharHandleBySampPlayerId(playerId)
-        if res then
-            -- local nick = sampGetPlayerNickname(playerId)
-            local hit, realAspect = mod.getRealAspectRatioByWeirdValue(data[aspectRatioKey])
-
-            local playerAimData = {
-                camMode = data.camMode,
-                camFrontX = data.camFront.x,
-                camFrontY = data.camFront.y,
-                camFrontZ = data.camFront.z,
-                camPosX = data.camPos.x,
-                camPosY = data.camPos.y,
-                camPosZ = data.camPos.z,
-                aimZ = data.aimZ,
-                camExtZoom = data.camExtZoom,
-                weaponState = data.weaponState,
-                aspectRatio = data[aspectRatioKey],
-
-                playerId = playerId,
-                realAspectHit = hit,
-                realAspect = realAspect,
-                weapon = getCurrentCharWeapon(char)
-            }
-
-            -- TODO 27 when cant see ped?
-            if (data.camMode ~= 4 and
-                    (readMemory(getCharPointer(char) + 0x528, 1, false) == 19 or
-                        readMemory(getCharPointer(char) + 0x528, 1, false) == 27)) or data.camMode == 55 then
-                local aspects = { playerAimData.realAspect }
-
-                if playerAimData.realAspect == "16:9" then
-                    aspects[2] = "16:9noWSF"
-                end
-
-                for k, aspect in pairs(aspects) do
-                    local p1x, p1y, p1z, p2x, p2y, p2z = mod.processAimLine(playerAimData, aspect)
-
-                    local result, colPoint = processLineOfSight(p1x, p1y, p1z, p2x, p2y, p2z, true, true, true, true,
-                        true, true, true, true)
-                    if result then
-                        if colPoint.entityType == 3 and colPoint.entity == getCharPointer(playerPed) then
-                            passiveCharBeingAimedByChar(playerPed, char, playerAimData.weapon)
-                        end
-                        if colPoint.entityType == 2 and isCharInAnyCar(playerPed) then
-                            passiveVehicleBeingAimedByChar(colPoint.entity, char, playerAimData.weapon)
-                        end
-                    end
                 end
             end
         end
