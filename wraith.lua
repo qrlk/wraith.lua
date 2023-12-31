@@ -469,6 +469,16 @@ local i18n = {
             ru = "Показывать gametext строку"
         },
 
+        settingPassiveDuration = {
+            en = "Gametext/tracer duration (in seconds)",
+            ru = "Продолжительность gametext/трасера (в сек)"
+        },
+
+        settingPassiveDurationCaption = {
+            en = "Set gametext/tracer duration. Use your keyboard arrows.",
+            ru = "Настройка продолжительности gametext/трасера. Используйте стрелки клавиатуры."
+        },
+
         settingWarnSoundRespectCooldown = {
             en = "Play warning voices when surprise attack",
             ru = "Воспроизводить звук при внезапной атаке"
@@ -731,6 +741,9 @@ local cfg = inicfg.load({
         printStyledString = true,
         showTempTracer = true,
         warnSoundRespectCooldown = true,
+        showTempTracerWarn = true,
+        printStyledStringWarn = true,
+        reactDuration = 3,
         cooldown = 20
     }
 }, 'wraith')
@@ -885,7 +898,7 @@ function processPassive()
     if cfg.passive.enable and cfg.passive.showTempTracer then
         for k, v in pairs(TRACE_PEDS) do
             if doesCharExist(k) then
-                if os.clock() - TRACE_PEDS[k] < 5 then
+                if os.clock() - TRACE_PEDS[k] < cfg.passive.reactDuration then
                     local x, y, z = getCharCoordinates(playerPed)
                     local mX, mY, mZ = getCharCoordinates(k)
 
@@ -938,26 +951,29 @@ function triggerPassive(typ, enemyPed)
                 if needWarn then
                     playRandomFromCategory('aiming')
                 end
-                if cfg.passive.printStyledString then
-                    printStyledString(string.format("AIMED by %s [%s] (%sm)", nick, id, dist), 3000, 5)
+                if cfg.passive.printStyledString or (needWarn and cfg.passive.printStyledStringWarn) then
+                    printStyledString(string.format("AIMED by %s [%s] (%sm)", nick, id, dist),
+                        cfg.passive.reactDuration * 1000, 5)
                 end
             elseif typ == "sniper" then
                 if needWarn then
                     playRandomFromCategory('sniper')
                 end
-                if cfg.passive.printStyledString then
-                    printStyledString(string.format("SNIPER!!! %s [%s] (%sm)", nick, id, dist), 3000, 5)
+                if cfg.passive.printStyledString or (needWarn and cfg.passive.printStyledStringWarn) then
+                    printStyledString(string.format("SNIPER!!! %s [%s] (%sm)", nick, id, dist),
+                        cfg.passive.reactDuration * 1000, 5)
                 end
             elseif typ == "vehicle" then
                 if needWarn then
                     playRandomFromCategory('vehicle')
                 end
-                if cfg.passive.printStyledString then
-                    printStyledString(string.format("DANGER!!! %s [%s] (%sm)", nick, id, dist), 3000, 5)
+                if cfg.passive.printStyledString or (needWarn and cfg.passive.printStyledStringWarn) then
+                    printStyledString(string.format("DANGER!!! %s [%s] (%sm)", nick, id, dist),
+                        cfg.passive.reactDuration * 1000, 5)
                 end
             end
 
-            if cfg.passive.showTempTracer and enemyPed then
+            if cfg.passive.showTempTracer or (needWarn and cfg.passive.showTempTracerWarn) then
                 if doesCharExist(enemyPed) then
                     TRACE_PEDS[enemyPed] = os.clock()
                 end
@@ -1525,8 +1541,8 @@ function openMenu(pos)
                         local newValue = cfg[group][setting] + step * stepCoof
                         if newValue < min then
                             newValue = min
-                        elseif newValue > 100 then
-                            newValue = 100
+                        elseif newValue > max then
+                            newValue = max
                         end
                         cfg[group][setting] = newValue
 
@@ -1608,14 +1624,32 @@ function openMenu(pos)
             {
                 title = (not cfg.passive.enable and "{696969}" or "") .. getMessage("settingPassiveSection"),
                 submenu = {
+                    {
+                        title = (not cfg.passive.enable and "{696969}" or "") .. "Реакция на прицеливание"
+                    },
                     createSimpleToggle("passive", "showTempTracer", getMessage("settingPassiveTracer"),
                         not cfg.passive.enable),
 
                     createSimpleToggle("passive", "printStyledString", getMessage("settingPassiveString"),
                         not cfg.passive.enable),
+                    createSimpleSlider("passive", "reactDuration",
+                        (not cfg.passive.enable and "{696969}" or "") .. getMessage('settingPassiveDuration'),
+                        getMessage('settingPassiveDurationCaption'), "OK", 1, 20,
+                        1, function(v)
+                            saveCfg()
+                        end),
                     createEmptyLine(),
+                    {
+                        title = (not cfg.passive.enable and "{696969}" or "") .. "Реакция на внезапную атаку"
+                    },
                     createSimpleToggle("passive", "warnSoundRespectCooldown",
                         getMessage("settingWarnSoundRespectCooldown"),
+                        not cfg.passive.enable),
+
+                    createSimpleToggle("passive", "showTempTracerWarn", getMessage("settingPassiveTracer"),
+                        not cfg.passive.enable),
+
+                    createSimpleToggle("passive", "printStyledStringWarn", getMessage("settingPassiveString"),
                         not cfg.passive.enable),
                     createSimpleSlider("passive", "cooldown",
                         (not cfg.passive.enable and "{696969}" or "") .. getMessage('settingPassiveCooldown'),
@@ -1623,8 +1657,6 @@ function openMenu(pos)
                         1, function(v)
                             saveCfg()
                         end),
-
-                    createEmptyLine(),
                 },
             }
         }
