@@ -678,8 +678,49 @@ local i18n = {
         button3 = {
             en = "Back",
             ru = "Назад"
-        }
+        },
 
+        cubeSlider1 = {
+            en = "Left: 1 + arrows",
+            ru = "Влево: 1 + стрелки"
+        },
+
+        cubeSlider2 = {
+            en = "Forward: 2 + arrows",
+            ru = "Вперед: 2 + стрелки"
+        },
+        cubeSlider3 = {
+            en = "Back: 3 + arrows",
+            ru = "Назад: 3 + стрелки"
+        },
+        cubeSlider4 = {
+            en = "Right: 4 + arrows",
+            ru = "Вправо: 4 + стрелки"
+        },
+        cubeSlider5 = {
+            en = "Down: 5 + arrows",
+            ru = "Вниз: 5 + стрелки"
+        },
+        cubeSlider6 = {
+            en = "Up: 6 + arrows",
+            ru = "Вверх: 6 + стрелки"
+        },
+        settingPassiveCharCube = {
+            en = "Setup char's cube",
+            ru = "Настройка куба персонажа"
+        },
+        settingPassiveCharCubeCaption = {
+            en = "Setup char's cube",
+            ru = "Настройка куба персонажа"
+        },
+        settingPassiveCarCube = {
+            en = "Setup car's cube",
+            ru = "Настройка куба машин"
+        },
+        settingPassiveCarCubeCaption = {
+            en = "Setup car's cube",
+            ru = "Настройка куба машин"
+        },
     },
     audioLangTable = {
         en = { 'English', 'Russian', 'French', 'Italian', 'German', 'Spanish', 'Japanese', 'Korean', 'Polish', 'Chinese' },
@@ -788,7 +829,19 @@ local cfg = inicfg.load({
         printStyledStringWarn = true,
         sendChatWarn = '',
         reactDuration = 3,
-        cooldown = 20
+        cooldown = 20,
+        p1 = 2.0,
+        p2 = 2.0,
+        p3 = 2.0,
+        p4 = 2.0,
+        p5 = 1.0,
+        p6 = 1.0,
+        c1 = 2.0,
+        c2 = 2.0,
+        c3 = 2.0,
+        c4 = 2.0,
+        c5 = 1.0,
+        c6 = 1.0
     }
 }, 'wraith')
 
@@ -1050,6 +1103,36 @@ function triggerPassive(typ, enemyPed)
             end
         end
     end
+end
+
+function getCharModelCornersIn2d(id, handle)
+    local x1, y1, z1, x2, y2, z2 = getModelDimensions(id)
+    local t = {
+        [1] = { convert3DCoordsToScreen(getOffsetFromCharInWorldCoords(handle, x1 * cfg.passive.p1, y1 * -1 * cfg.passive.p2, z1 * cfg.passive.p5)) },      -- {x = x1, y = y1 * -1.0, z = z1},
+        [2] = { convert3DCoordsToScreen(getOffsetFromCharInWorldCoords(handle, x1 * -1 * cfg.passive.p4, y1 * -1 * cfg.passive.p2, z1 * cfg.passive.p5)) }, -- {x = x1 * -1.0, y = y1 * -1.0, z = z1},
+        [3] = { convert3DCoordsToScreen(getOffsetFromCharInWorldCoords(handle, x1 * -1 * cfg.passive.p4, y1 * cfg.passive.p3, z1 * cfg.passive.p5)) },      -- {x = x1 * -1.0, y = y1, z = z1},
+        [4] = { convert3DCoordsToScreen(getOffsetFromCharInWorldCoords(handle, x1 * 1 * cfg.passive.p1, y1 * 1 * cfg.passive.p3, z1 * cfg.passive.p5)) },   -- {x = x1, y = y1, z = z1},
+        [5] = { convert3DCoordsToScreen(getOffsetFromCharInWorldCoords(handle, x2 * -1 * cfg.passive.p1, y2 * cfg.passive.p2, z2 * cfg.passive.p6)) },      -- {x = x2 * -1.0, y = 0, z = 0},
+        [6] = { convert3DCoordsToScreen(getOffsetFromCharInWorldCoords(handle, x2 * -1 * cfg.passive.p1, y2 * -1 * cfg.passive.p3, z2 * cfg.passive.p6)) }, -- {x = x2 * -1.0, y = y2 * -1.0, z = z2},
+        [7] = { convert3DCoordsToScreen(getOffsetFromCharInWorldCoords(handle, x2 * cfg.passive.p4, y2 * -1 * cfg.passive.p3, z2 * cfg.passive.p6)) },      -- {x = x2, y = y2 * -1.0, z = z2},
+        [8] = { convert3DCoordsToScreen(getOffsetFromCharInWorldCoords(handle, x2 * cfg.passive.p4, y2 * cfg.passive.p2, z2 * cfg.passive.p6)) },           -- {x = x2, y = y2, z = z2},
+    }
+    return t
+end
+
+function getCarModelCornersIn2d(id, handle)
+    local x1, y1, z1, x2, y2, z2 = getModelDimensions(id)
+    local t = {
+        [1] = { convert3DCoordsToScreen(getOffsetFromCarInWorldCoords(handle, x1 * cfg.passive.c1, y1 * -1 * cfg.passive.c2, z1 * cfg.passive.c5)) },
+        [2] = { convert3DCoordsToScreen(getOffsetFromCarInWorldCoords(handle, x1 * -1 * cfg.passive.c4, y1 * -1 * cfg.passive.c2, z1 * cfg.passive.c5)) },
+        [3] = { convert3DCoordsToScreen(getOffsetFromCarInWorldCoords(handle, x1 * -1 * cfg.passive.c4, y1 * cfg.passive.c3, z1 * cfg.passive.c5)) },
+        [4] = { convert3DCoordsToScreen(getOffsetFromCarInWorldCoords(handle, x1 * 1 * cfg.passive.c1, y1 * 1 * cfg.passive.c3, z1 * cfg.passive.c5)) },
+        [5] = { convert3DCoordsToScreen(getOffsetFromCarInWorldCoords(handle, x2 * -1 * cfg.passive.c1, y2 * cfg.passive.c2, z2 * cfg.passive.c6)) },
+        [6] = { convert3DCoordsToScreen(getOffsetFromCarInWorldCoords(handle, x2 * -1 * cfg.passive.c1, y2 * -1 * cfg.passive.c3, z2 * cfg.passive.c6)) },
+        [7] = { convert3DCoordsToScreen(getOffsetFromCarInWorldCoords(handle, x2 * cfg.passive.c4, y2 * -1 * cfg.passive.c3, z2 * cfg.passive.c6)) },
+        [8] = { convert3DCoordsToScreen(getOffsetFromCarInWorldCoords(handle, x2 * cfg.passive.c4, y2 * cfg.passive.c2, z2 * cfg.passive.c6)) }
+    }
+    return t
 end
 
 --tactical
@@ -1437,6 +1520,54 @@ function createTemporaryTracer(tracePed, seconds)
     end
 end
 
+function debugRenderCharCube(ped)
+    if doesCharExist(ped) then
+        local c = getCharModelCornersIn2d(getCharModel(ped), ped)
+        for i = 1, #c do
+            renderDrawPolygon(c[i][1] - 2, c[i][2] - 2, 10, 10, 10, 0, 0xFFff004d)
+            -- renderFontDrawText(font, 'Corner #' .. i, c[i][1], c[i][2], 0xFFFFFFFF, 0x90000000)
+        end
+        renderDrawLine(c[1][1], c[1][2], c[2][1], c[2][2], 2, 0xFFff004d)
+        renderDrawLine(c[2][1], c[2][2], c[3][1], c[3][2], 2, 0xFFff004d)
+        renderDrawLine(c[3][1], c[3][2], c[4][1], c[4][2], 2, 0xFFff004d)
+        renderDrawLine(c[4][1], c[4][2], c[1][1], c[1][2], 2, 0xFFff004d)
+
+        renderDrawLine(c[5][1], c[5][2], c[6][1], c[6][2], 2, 0xFFff004d)
+        renderDrawLine(c[6][1], c[6][2], c[7][1], c[7][2], 2, 0xFFff004d)
+        renderDrawLine(c[7][1], c[7][2], c[8][1], c[8][2], 2, 0xFFff004d)
+        renderDrawLine(c[8][1], c[8][2], c[5][1], c[5][2], 2, 0xFFff004d)
+
+        renderDrawLine(c[1][1], c[1][2], c[5][1], c[5][2], 2, 0xFFff004d)
+        renderDrawLine(c[2][1], c[2][2], c[8][1], c[8][2], 2, 0xFFff004d)
+        renderDrawLine(c[3][1], c[3][2], c[7][1], c[7][2], 2, 0xFFff004d)
+        renderDrawLine(c[4][1], c[4][2], c[6][1], c[6][2], 2, 0xFFff004d)
+    end
+end
+
+function debugRenderCarCube(car)
+    if doesVehicleExist(car) then
+        local c = getCarModelCornersIn2d(getCarModel(car), car)
+        for i = 1, #c do
+            renderDrawPolygon(c[i][1] - 2, c[i][2] - 2, 10, 10, 10, 0, 0xFFff004d)
+            -- renderFontDrawText(font, 'Corner #' .. i, c[i][1], c[i][2], 0xFFFFFFFF, 0x90000000)
+        end
+        renderDrawLine(c[1][1], c[1][2], c[2][1], c[2][2], 2, 0xFFff004d)
+        renderDrawLine(c[2][1], c[2][2], c[3][1], c[3][2], 2, 0xFFff004d)
+        renderDrawLine(c[3][1], c[3][2], c[4][1], c[4][2], 2, 0xFFff004d)
+        renderDrawLine(c[4][1], c[4][2], c[1][1], c[1][2], 2, 0xFFff004d)
+
+        renderDrawLine(c[5][1], c[5][2], c[6][1], c[6][2], 2, 0xFFff004d)
+        renderDrawLine(c[6][1], c[6][2], c[7][1], c[7][2], 2, 0xFFff004d)
+        renderDrawLine(c[7][1], c[7][2], c[8][1], c[8][2], 2, 0xFFff004d)
+        renderDrawLine(c[8][1], c[8][2], c[5][1], c[5][2], 2, 0xFFff004d)
+
+        renderDrawLine(c[1][1], c[1][2], c[5][1], c[5][2], 2, 0xFFff004d)
+        renderDrawLine(c[2][1], c[2][2], c[8][1], c[8][2], 2, 0xFFff004d)
+        renderDrawLine(c[3][1], c[3][2], c[7][1], c[7][2], 2, 0xFFff004d)
+        renderDrawLine(c[4][1], c[4][2], c[6][1], c[6][2], 2, 0xFFff004d)
+    end
+end
+
 --------------------------------------------------------------------------------
 -------------------------------------MENU---------------------------------------
 --------------------------------------------------------------------------------
@@ -1626,10 +1757,120 @@ function openMenu(pos)
 
                 menu[row].title = text .. ": " .. tostring(cfg[group][setting])
 
-                if not ffuncOnEndunc then
+                if not funcOnEnd then
                     return true
                 else
                     return funcOnEnd(cfg[group][setting], menu, row)
+                end
+            end
+        }
+    end
+
+    local function createCubeAdjuster(group, setting1, setting2, setting3, setting4, setting5, setting6, text, caption,
+                                      button1, min, max,
+                                      stepCoof, funcOnRender, funcOnChange, funcOnEnd)
+        local function generateText()
+            local str = ''
+
+            for k, v in pairs({
+                {
+                    m = "cubeSlider1", k = setting1
+                },
+                {
+                    m = "cubeSlider2", k = setting2
+                },
+                {
+                    m = "cubeSlider3", k = setting3
+                },
+                {
+                    m = "cubeSlider4", k = setting4
+                },
+                {
+                    m = "cubeSlider5", k = setting5
+                },
+                {
+                    m = "cubeSlider6", k = setting6
+                }
+            }) do
+                str = str .. getMessage(v.m) .. " " .. generateStatusString(cfg[group][v.k], max) .. "\n"
+            end
+            return str
+        end
+        return {
+            title = text .. ": " .. tostring(cfg[group][setting1]),
+            onclick = function(menu, row)
+                for k, v in pairs({ setting1, setting2, setting3, setting4, settings5, setting6 }) do
+                    if cfg[group][v] < min then
+                        cfg[group][v] = min
+                    end
+                end
+
+                sampShowDialog(767, caption, generateText(), button1)
+
+                if funcOnRender then
+                    table.insert(tempThreads, lua_thread.create(function()
+                        while sampIsDialogActive(767) do
+                            wait(0)
+                            funcOnRender()
+                        end
+                    end))
+                end
+
+                while sampIsDialogActive(767) do
+                    wait(0)
+                    if sampIsDialogActive(767) and (isKeyDown(0x25) or isKeyDown(0x26) or isKeyDown(0x27) or isKeyDown(0x28)) and (isKeyDown(0x31) or isKeyDown(0x32) or isKeyDown(0x33) or isKeyDown(0x34) or isKeyDown(0x35) or isKeyDown(0x36)) then
+                        wait(100)
+                        local settingToTweak = ''
+
+                        if isKeyDown(0x31) then
+                            settingToTweak = setting1
+                        elseif isKeyDown(0x32) then
+                            settingToTweak = setting2
+                        elseif isKeyDown(0x33) then
+                            settingToTweak = setting3
+                        elseif isKeyDown(0x34) then
+                            settingToTweak = setting4
+                        elseif isKeyDown(0x35) then
+                            settingToTweak = setting5
+                        elseif isKeyDown(0x36) then
+                            settingToTweak = setting6
+                        end
+
+                        local step = 0
+                        if isKeyDown(0x27) then
+                            step = 1
+                        elseif isKeyDown(0x26) then
+                            step = 5
+                        elseif isKeyDown(0x25) then
+                            step = -1
+                        elseif isKeyDown(0x28) then
+                            step = -5
+                        end
+
+                        if settingToTweak ~= '' then
+                            local newValue = cfg[group][settingToTweak] + step * stepCoof
+                            if newValue < min then
+                                newValue = min
+                            elseif newValue > max then
+                                newValue = max
+                            end
+                            cfg[group][settingToTweak] = newValue
+
+                            if funcOnChange then
+                                funcOnChange(cfg[group][setting])
+                            end
+
+                            sampShowDialog(767, caption, generateText(), button1)
+                        end
+                    end
+                end
+
+                menu[row].title = text .. ": " .. tostring(cfg[group][setting1])
+
+                if not funcOnEnd then
+                    return true
+                else
+                    return funcOnEnd(menu, row)
                 end
             end
         }
@@ -1763,6 +2004,32 @@ function openMenu(pos)
                         1, function(v)
                             saveCfg()
                         end),
+
+                    createEmptyLine(),
+
+                    { title = (not cfg.passive.enable and "{696969}" or "{808000}") .. 'in development' },
+                    createCubeAdjuster('passive', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6',
+                        (not cfg.passive.enable and "{696969}" or "") .. getMessage('settingPassiveCharCube'),
+                        getMessage('settingPassiveCharCubeCaption'), 'ok', 0.1, 10,
+                        0.1,
+                        function()
+                            if doesCharExist(playerPed) then
+                                debugRenderCharCube(playerPed)
+                            end
+                        end, nil, function()
+                            saveCfg()
+                        end),
+                    createCubeAdjuster('passive', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6',
+                        (not cfg.passive.enable and "{696969}" or "") .. getMessage('settingPassiveCarCube'),
+                        getMessage('settingPassiveCarCubeCaption'), 'ok', 0.1, 10,
+                        0.1,
+                        function()
+                            if isCharInAnyCar(PLAYER_PED) then
+                                debugRenderCarCube(storeCarCharIsInNoSave(PLAYER_PED))
+                            end
+                        end, nil, function()
+                            saveCfg()
+                        end)
                 },
             }
         }
