@@ -469,6 +469,11 @@ local i18n = {
             ru = "Показывать gametext строку"
         },
 
+        settingWarnSoundRespectCooldown = {
+            en = "Play warning voices when surprise attack",
+            ru = "Воспроизводить звук при внезапной атаке"
+        },
+
         settingPassiveCooldown = {
             en = "Passive ability cooldown (in seconds)",
             ru = "Кулдаун пассивной способности (в сек.)"
@@ -725,6 +730,7 @@ local cfg = inicfg.load({
         enable = true,
         printStyledString = true,
         showTempTracer = true,
+        warnSoundRespectCooldown = true,
         cooldown = 20
     }
 }, 'wraith')
@@ -746,7 +752,7 @@ saveCfg()
 
 local tempThreads = {}
 
-local wraith_passive_lastused = 0
+local wraith_passive_lastaimed = 0
 
 local wraith_tactical_active = false
 local wraith_tactical_lastused = 0
@@ -877,20 +883,18 @@ end
 local TRACE_PEDS = {}
 function processPassive()
     if cfg.passive.enable and cfg.passive.showTempTracer then
-        if #TRACE_PEDS > 0 then
-            for k, v in pairs(TRACE_PEDS) do
-                if doesCharExist(k) then
-                    if os.clock() - TRACE_PEDS[k] < 5 then
-                        local x, y, z = getCharCoordinates(playerPed)
-                        local mX, mY, mZ = getCharCoordinates(tracePed)
+        for k, v in pairs(TRACE_PEDS) do
+            if doesCharExist(k) then
+                if os.clock() - TRACE_PEDS[k] < 5 then
+                    local x, y, z = getCharCoordinates(playerPed)
+                    local mX, mY, mZ = getCharCoordinates(k)
 
-                        drawDebugLine(x, y, z, mX, mY, mZ, 0xffFF00FF, 0xffFF00FF, 0xffFF00FF)
-                    else
-                        TRACE_PEDS[k] = nil
-                    end
+                    drawDebugLine(x, y, z, mX, mY, mZ, 0xffFF00FF, 0xffFF00FF, 0xffFF00FF)
                 else
                     TRACE_PEDS[k] = nil
                 end
+            else
+                TRACE_PEDS[k] = nil
             end
         end
     end
@@ -918,10 +922,10 @@ end
 
 function triggerPassive(typ, enemyPed)
     local needWarn = false
-    if os.clock() - cfg.passive.cooldown > wraith_passive_lastused then
+    if cfg.passive.warnSoundRespectCooldown and os.clock() - cfg.passive.cooldown > wraith_passive_lastaimed then
         needWarn = true
     end
-    wraith_passive_lastused = os.clock()
+    wraith_passive_lastaimed = os.clock()
     if doesCharExist(enemyPed) then
         local _, id = sampGetPlayerIdByCharHandle(enemyPed)
         if _ and sampIsPlayerConnected(id) then
@@ -935,7 +939,7 @@ function triggerPassive(typ, enemyPed)
                     playRandomFromCategory('aiming')
                 end
                 if cfg.passive.printStyledString then
-                    printStyledString(string.format("AIMED by %s [%s] (%sm)", nick, id, dist), 5000, 5)
+                    printStyledString(string.format("AIMED by %s [%s] (%sm)", nick, id, dist), 3000, 5)
                 end
             elseif typ == "sniper" then
                 if needWarn then
@@ -954,7 +958,9 @@ function triggerPassive(typ, enemyPed)
             end
 
             if cfg.passive.showTempTracer and enemyPed then
-                table.insert(tempThreads, lua_thread.create(createTemporaryTracer, enemyPed, 5))
+                if doesCharExist(enemyPed) then
+                    TRACE_PEDS[enemyPed] = os.clock()
+                end
             end
         end
     end
@@ -1604,9 +1610,13 @@ function openMenu(pos)
                 submenu = {
                     createSimpleToggle("passive", "showTempTracer", getMessage("settingPassiveTracer"),
                         not cfg.passive.enable),
+
                     createSimpleToggle("passive", "printStyledString", getMessage("settingPassiveString"),
                         not cfg.passive.enable),
                     createEmptyLine(),
+                    createSimpleToggle("passive", "warnSoundRespectCooldown",
+                        getMessage("settingWarnSoundRespectCooldown"),
+                        not cfg.passive.enable),
                     createSimpleSlider("passive", "cooldown",
                         (not cfg.passive.enable and "{696969}" or "") .. getMessage('settingPassiveCooldown'),
                         getMessage('settingPassiveCooldownCaption'), "OK", 6, 100,
