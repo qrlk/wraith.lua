@@ -5,7 +5,7 @@ script_author("qrlk")
 script_description("wraith passive + tactical")
 -- made for https://www.blast.hk/threads/193650/
 script_url("https://github.com/qrlk/wraith.lua")
-script_version("23.12.2023-rc3")
+script_version("31.12.2023-rc4")
 
 -- https://github.com/qrlk/qrlk.lua.moonloader
 local enable_sentry = true     -- false to disable error reports to sentry.io
