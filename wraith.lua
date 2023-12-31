@@ -386,8 +386,8 @@ local i18n = {
             ru = "ресурсы не найдены"
         },
         settingAudioEnable = {
-            en = "Enable audio from Apex Legends",
-            ru = "Включить аудио из Apex Legends"
+            en = "Enable audio from {ff0000}Apex Legends{ffffff}",
+            ru = "Включить аудио из {ff0000}Apex Legends{ffffff}"
         },
         settingIgnoreMissing = {
             en = "Ignore missing sounds",
@@ -711,15 +711,15 @@ local i18n = {
         },
         settingPassiveCharCubeCaption = {
             en = "Setup char's cube",
-            ru = "Настройка куба персонажа"
+            ru = "Настройка куба для персонажа"
         },
         settingPassiveCarCube = {
             en = "Setup car's cube",
-            ru = "Настройка куба машин"
+            ru = "Настройка куба для машин"
         },
         settingPassiveCarCubeCaption = {
             en = "Setup car's cube",
-            ru = "Настройка куба машин"
+            ru = "Настройка куба для машин"
         },
     },
     audioLangTable = {
@@ -1520,6 +1520,8 @@ function createTemporaryTracer(tracePed, seconds)
     end
 end
 
+-- local font = renderCreateFont('Tahoma', 10, 4)
+
 function debugRenderCharCube(ped)
     if doesCharExist(ped) then
         local c = getCharModelCornersIn2d(getCharModel(ped), ped)
@@ -1921,9 +1923,8 @@ function openMenu(pos)
             {
                 title = getMessage('sectionPassive')
             },
-            createSimpleToggle("passive", "enable",
-                (cfg.passive.enable and "{696969}" or "") .. getMessage("settingPassive"),
-                false, function(value, menu, pos)
+            createSimpleToggle("passive", "enable", getMessage("settingPassive"),
+                cfg.passive.enable, function(value, menu, pos)
                     callMenu(pos - 1)
                     return false
                 end),
@@ -2041,8 +2042,7 @@ function openMenu(pos)
             {
                 title = getMessage('sectionTactical')
             },
-            createSimpleToggle("tactical", "enable",
-                (cfg.tactical.enable and "{696969}" or "") .. getMessage("settingTactical"), false,
+            createSimpleToggle("tactical", "enable", getMessage("settingTactical"), cfg.tactical.enable,
                 function(value, menu, pos)
                     callMenu(pos - 1)
                     return false
@@ -2079,7 +2079,7 @@ function openMenu(pos)
                                         end
                                     end
                                 end
-                                callMenu(9)
+                                callMenu(14)
                                 return false
                             else
                                 return true
@@ -2088,7 +2088,7 @@ function openMenu(pos)
                     },
                     createSimpleToggle("tactical", "alt", getMessage("settingTacticalAlt"), not cfg.tactical.enable,
                         function()
-                            callMenu(9)
+                            callMenu(14)
                             return false
                         end),
                 }
@@ -2135,8 +2135,12 @@ function openMenu(pos)
                 }
             end)(),
 
-            createSimpleToggle("audio", "enable", getMessage("settingAudioEnable"), false),
-            createSimpleToggle("audio", "ignoreMissing", getMessage('settingIgnoreMissing'), false),
+            createSimpleToggle("audio", "enable", getMessage("settingAudioEnable"), cfg.audio.enable,
+                function(value, menu, pos)
+                    callMenu(pos - 1)
+                    return false
+                end),
+            createSimpleToggle("audio", "ignoreMissing", getMessage('settingIgnoreMissing'), not cfg.audio.enable),
 
             (function()
                 local langId = 1
@@ -2154,26 +2158,30 @@ function openMenu(pos)
                             cfg.audio.language = audioLanguages[row]
                             playTestSound()
                             saveCfg()
-                            callMenu()
+                            callMenu(20)
+                            return false
                         end
                     })
                 end
 
                 return {
-                    title = getMessage("lang") .. i18n.audioLangTable[cfg.options.language][langId],
+                    title = (not cfg.audio.enable and "{696969}" or "") ..
+                        getMessage("lang") .. i18n.audioLangTable[cfg.options.language][langId],
                     submenu =
                         submenu
                 }
             end)(),
 
-            createSimpleSlider("audio", "volume", getMessage('settingVolume'),
+            createSimpleSlider("audio", "volume",
+                (not cfg.audio.enable and "{696969}" or "") .. getMessage('settingVolume'),
                 getMessage("settingVolumeCaption"), "OK", 0, 100,
                 1, function(v)
                     playTestSound()
                     saveCfg()
                 end),
 
-            createSimpleSlider("audio", "quietOffset", getMessage('settingVolumeQuietOffset'),
+            createSimpleSlider("audio", "quietOffset",
+                (not cfg.audio.enable and "{696969}" or "") .. getMessage('settingVolumeQuietOffset'),
                 getMessage("settingVolumeQuietOffsetCaption"), "OK", 0, 100,
                 1, function(v)
                     stopMainSoundNow()
@@ -2188,7 +2196,8 @@ function openMenu(pos)
                 end),
 
             {
-                title = getMessage('randomSound') .. getLastNCharacters(CURRENT_RANDOM_SOUND, 30),
+                title = (not cfg.audio.enable and "{696969}" or "") ..
+                    getMessage('randomSound') .. getLastNCharacters(CURRENT_RANDOM_SOUND, 30),
                 onclick = function(menu, row)
                     CURRENT_RANDOM_SOUND = getRandomSoundName()
                     playTestSound()
@@ -2198,7 +2207,7 @@ function openMenu(pos)
             },
 
             {
-                title = "PLAY",
+                title = (not cfg.audio.enable and "{696969}" or "") .. "PLAY",
                 onclick = function(menu, row)
                     playTestSound()
                     return true
