@@ -376,8 +376,6 @@ end
 
 --- start
 local inicfg = require "inicfg"
-local sampev = require "lib.samp.events"
-local aspectRatioKey = sampev.MODULEINFO.version >= 3 and 'aspectRatio' or 'unknown'
 local key = require 'vkeys'
 
 local as_action = require('moonloader').audiostream_state
@@ -1081,6 +1079,24 @@ function main()
         end
     end)
 
+    addEventHandler('onSendPacket', function(id, bs)
+        if wraith_tactical_active and id == 207 then
+            if wraith_tactical_active then
+                raknetBitStreamSetReadOffset(bs, 120)
+                local posZ = raknetBitStreamReadFloat(bs)
+
+                local saved_write_offset = raknetBitStreamGetWriteOffset(bs)
+
+                raknetBitStreamSetWriteOffset(bs, 120)
+                raknetBitStreamWriteFloat(bs, posZ - 2.5)
+                raknetBitStreamSetWriteOffset(bs, saved_write_offset)
+
+                printStyledString(getMessage("tacticalUnderZWarning"), 100, 5)
+                return { id, bs } -- возвращаем перезаписанные значения
+            end
+        end
+    end)
+
     while true do
         wait(0)
 
@@ -1367,13 +1383,6 @@ function processTactical()
                 end
             end
         end
-    end
-end
-
-function sampev.onSendPlayerSync(data)
-    if wraith_tactical_active then
-        data.position.z = data.position.z - 2.5
-        printStyledString(getMessage("tacticalUnderZWarning"), 100, 5)
     end
 end
 
