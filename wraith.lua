@@ -13,6 +13,8 @@ local enable_sentry = true     -- false to disable error reports to sentry.io
 local enable_autoupdate = true -- false to disable auto-update + disable sending initial telemetry (server, moonloader version, script version, samp nickname, virtual volume serial number)
 
 --^^ none of it works if wraith.lua is loaded as a module.
+
+--pls dont use this in your projects, I do not plan to maintain this lib for a long time
 local aimline = {}
 do
     aimline._VERSION = "0.0.1"
@@ -976,8 +978,8 @@ local requestToUnload = false
 
 -- trying to ulitize aspectRatio property from aimSync
 
-local mainSoundStream = loadAudioStream()
-local reserveSoundStream = loadAudioStream()
+local mainSoundStream = false
+local reserveSoundStream = false
 
 local CURRENT_RANDOM_SOUND = ""
 
@@ -988,11 +990,11 @@ local phasingInstantSoundPath = getWorkingDirectory() .. "\\resource\\wraith\\ta
 
 function main()
     if not isCleoLoaded() then
-        printStyledString('wraith.lua: pls install cleo', 5000, 2)
+        printStyledString('wraith.lua: pls install cleo', 10000, 2)
         return
     end
     if not isSampfuncsLoaded() then
-        printStyledString('wraith.lua: pls install sampfuncs', 5000, 5)
+        printStyledString('wraith.lua: pls install sampfuncs', 10000, 5)
         return
     end
     if not isSampLoaded() then
@@ -1010,14 +1012,17 @@ function main()
 
     if getMoonloaderVersion() < 26 then
         sampAddChatMessage(getMessage('pleaseUpdateMoonloader'), -1)
-        local str = "You must update moonloader if you want to use wraith.lua"
-        printStyledString(str, 10000, 2)
-        printStyledString(str, 10000, 5)
-        thisScript():unload()
-        wait(-1)
+        local str = "wraith.lua: you should update moonloader, normal work is not guaranteed"
+        -- printStyledString(str, 10000, 2)
+        -- printStyledString(str, 10000, 5)
+        -- thisScript():unload()
+        -- wait(-1)
     end
 
     -- sc23
+
+    mainSoundStream = loadAudioStream()
+    reserveSoundStream = loadAudioStream()
 
     if getVolume().radio == 0 then
         radio_were_disabled = true
@@ -1037,7 +1042,7 @@ function main()
         end))
     end)
 
-    sampProcessChatInput('/wraith')
+    -- sampProcessChatInput('/wraith')
 
     while sampGetCurrentServerName() == "SA-MP" do
         wait(500)
@@ -1250,7 +1255,6 @@ function triggerPassive(typ, enemyPed)
 
             if needWarn and cfg.passive.sendChatWarn ~= "" then
                 if _ then
-                    local nick = sampGetPlayerNickname(playerid)
                     local name, surname = string.match(nick, "(%g+)_(%g+)")
                     local r = {
                         id = id,
