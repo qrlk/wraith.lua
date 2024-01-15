@@ -895,14 +895,14 @@ local cfg = inicfg.load({
 
         showTempTracer = true,
         printStyledString = true,
-        addOneOffSound = false,
+        addOneOffSound = true,
 
         needBullet = false,
         needBulletRectangleCuboidFoot = true,
         needBulletRectangleCuboidCar = false,
         showTempTracerB = true,
         printStyledStringB = true,
-        addOneOffSoundB = false,
+        addOneOffSoundB = true,
 
         smartTracer = true,
 
@@ -1866,6 +1866,13 @@ function openMenu(pos)
                         not cfg.passive.enable),
                     createSimpleToggle("passive", "addOneOffSound", getMessage("settingPassiveAddOffSound"),
                         not cfg.passive.enable),
+                    createSimpleToggle("passive", "needAimLineRectangleCuboidFoot",
+                        getMessage("settingPassiveNeedAimLineRectangleCuboidFoot"),
+                        not cfg.passive.enable),
+                    createSimpleToggle("passive", "needAimLineRectangleCuboidCar",
+                        getMessage("settingPassiveNeedAimLineRectangleCuboidCar"),
+                        not cfg.passive.enable),
+
                     createEmptyLine(),
 
                     {
@@ -1880,6 +1887,12 @@ function openMenu(pos)
                     createSimpleToggle("passive", "printStyledStringB", getMessage("settingPassiveStringB"),
                         not cfg.passive.enable),
                     createSimpleToggle("passive", "addOneOffSoundB", getMessage("settingPassiveAddOffSoundB"),
+                        not cfg.passive.enable),
+                    createSimpleToggle("passive", "needBulletRectangleCuboidFoot",
+                        getMessage("settingPassiveNeedBulletRectangleCuboidFoot"),
+                        not cfg.passive.enable),
+                    createSimpleToggle("passive", "needBulletRectangleCuboidCar",
+                        getMessage("settingPassiveNeedBulletRectangleCuboidCar"),
                         not cfg.passive.enable),
                     createEmptyLine(),
 
@@ -1948,20 +1961,6 @@ function openMenu(pos)
                             saveCfg()
                         end),
 
-                    createSimpleToggle("passive", "needBulletRectangleCuboidFoot",
-                        getMessage("settingPassiveNeedBulletRectangleCuboidFoot"),
-                        not cfg.passive.enable),
-                    createSimpleToggle("passive", "needBulletRectangleCuboidCar",
-                        getMessage("settingPassiveNeedBulletRectangleCuboidCar"),
-                        not cfg.passive.enable),
-
-                    createSimpleToggle("passive", "needAimLineRectangleCuboidFoot",
-                        getMessage("settingPassiveNeedAimLineRectangleCuboidFoot"),
-                        not cfg.passive.enable),
-                    createSimpleToggle("passive", "needAimLineRectangleCuboidCar",
-                        getMessage("settingPassiveNeedAimLineRectangleCuboidCar"),
-                        not cfg.passive.enable),
-
                     createCubeAdjuster('passive', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6',
                         (not cfg.passive.enable and "{696969}" or "") .. getMessage('settingPassiveCharCube'),
                         getMessage('settingPassiveCharCubeCaption'), 'ok', 0.1, 10,
@@ -2006,7 +2005,7 @@ function openMenu(pos)
                     sampProcessChatInput('/wraith-tactical')
                 end
             } or
-            createLinkRow(getMessage("openWraithTacticalThread"), "https://www.blast.hk/threads//")
+            createLinkRow(getMessage("openWraithTacticalThread"), "https://www.blast.hk/threads/200708/")
         }
     end
 
