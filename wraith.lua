@@ -614,11 +614,6 @@ local i18n = {
             ru = "Просчитывать трасер за фовом"
         },
 
-        tacticalUnderZWarning = {
-            en = 'YOU ARE UNDER GROUND!!!',
-            ru = 'VI POD ZEMLEY!!!'
-        },
-
         sectionTactical = {
             en = "{808000}Tactical ability - Into the Void",
             ru = "{808000}Тактическая способность - В Пустоту"
