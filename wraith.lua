@@ -1103,7 +1103,7 @@ function preparePassive()
                 if d > 1 and d < 1000 then
                     local line = aimline.Line.new({ originX, originY, originZ }, { hitX, hitY, hitZ })
 
-                    local p = line:getPointAtDistance(0.1)
+                    local p = line:getPointAtDistance(line.magnitude + 0.1)
                     local result, colPoint = processLineOfSight(originX, originY, originZ, p[1], p[2], p[3], true,
                         true, true, true, true, true, true, true)
 
@@ -1116,11 +1116,11 @@ function preparePassive()
                             if sampIsPlayerConnected(playerId) then
                                 local res, char = sampGetCharHandleBySampPlayerId(playerId)
                                 if res then
-                                    passiveCharBeingAimedByChar(playerPed, char, weaponId)
+                                    passiveCharBulletByChar(playerPed, char, weaponId)
                                 end
                             end
                         end
-                        if colPoint.entityType == 2 and isCharInAnyCar(playerPed) and car == getCarPointer(storeCarCharIsInNoSave(playerPed)) then
+                        if colPoint.entityType == 2 and isCharInAnyCar(playerPed) and colPoint.entity == getCarPointer(storeCarCharIsInNoSave(playerPed)) then
                             needToGoDeep = false
 
                             if sampIsPlayerConnected(playerId) then
