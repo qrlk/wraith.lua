@@ -1434,7 +1434,7 @@ function drawDebugLine(ax, ay, az, bx, by, bz, color1, color2, color3)
     end
 end
 
-local font = renderCreateFont('Tahoma', 10, 4)
+-- local font = renderCreateFont('Tahoma', 10, 4)
 
 function debugRenderCharCube(ped)
     if doesCharExist(ped) then
@@ -1447,7 +1447,7 @@ function debugRenderCharCube(ped)
 
         for i = 1, #r do
             renderDrawPolygon(r[i][1] - 2, r[i][2] - 2, 10, 10, 10, 0, 0xFFff004d)
-            renderFontDrawText(font, 'Corner #' .. i, r[i][1], r[i][2], 0xFFFFFFFF, 0x90000000)
+            -- renderFontDrawText(font, 'Corner #' .. i, r[i][1], r[i][2], 0xFFFFFFFF, 0x90000000)
         end
 
         renderDrawLine(r[1][1], r[1][2], r[2][1], r[2][2], 2, 0xFFff004d)
@@ -1478,7 +1478,7 @@ function debugRenderCarCube(car, func, color)
 
         for i = 1, #r do
             renderDrawPolygon(r[i][1] - 2, r[i][2] - 2, 10, 10, 10, 0, color)
-            renderFontDrawText(font, 'Corner #' .. i, r[i][1], r[i][2], 0xFFFFFFFF, 0x90000000)
+            -- renderFontDrawText(font, 'Corner #' .. i, r[i][1], r[i][2], 0xFFFFFFFF, 0x90000000)
         end
 
         renderDrawLine(r[1][1], r[1][2], r[2][1], r[2][2], 2, color)
