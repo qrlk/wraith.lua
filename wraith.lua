@@ -704,6 +704,16 @@ local i18n = {
             ru = "{808000}Тактическая способность - В Пустоту"
         },
 
+        openWraithTactical = {
+            en = "{696969}wraith-tactical {ff0000}(detectable cheat){ffffff}: installed!",
+            ru = "{696969}wraith-tactical {ff0000}(палевный чит){ffffff}: установлен!"
+        },
+
+        openWraithTacticalThread = {
+            en = "Open wraith-tactical {ff0000}(detectable cheat){ffffff} thread (RU)",
+            ru = "Открыть тему с wraith-tactical {ff0000}(палевный чит){ffffff}"
+        },
+
         settingTactical = {
             en = "Into the Void {ff0000}(easily detectable cheat){ffffff}",
             ru = "В Пустоту {ff0000}(очень палевный чит){ffffff}"
@@ -2573,73 +2583,15 @@ function openMenu(pos)
             {
                 title = getMessage('sectionTactical')
             },
-            createSimpleToggle("tactical", "enable", getMessage("settingTactical"), cfg.tactical.enable,
-                function(value, menu, pos)
-                    callMenu(pos - 1)
-                    return false
-                end),
 
+            sampIsChatCommandDefined('wraith-tactical') and
             {
-                title = (not cfg.tactical.enable and "{696969}" or "") .. getMessage("tacticalActivationMode") ..
-                    (cfg.tactical.enable and ("{ff0000}" .. (cfg.tactical.alt and "LEFT ALT + " or "") .. (key and key.id_to_name(cfg.tactical.key) or tostring(cfg.tactical.key))) or getMessage("tacticalActivationDisabled")),
-                submenu = {
-                    {
-                        title = (not cfg.tactical.enable and "{696969}" or "") ..
-                            getMessage("tacticalKeyName") ..
-                            (key and key.id_to_name(cfg.tactical.key) or tostring(cfg.tactical.key)),
-                        onclick = function(menu, row)
-                            sampShowDialog(777, getMessage('legacyChangeKeyTitle'), getMessage('legacyChangeKeyText'),
-                                getMessage('legacyChangeKeyButton1'), getMessage('legacyChangeKeyButton2'))
-                            while sampIsDialogActive(777) do
-                                wait(100)
-                            end
-                            local resultMain, buttonMain, typ = sampHasDialogRespond(777)
-                            local isThisBetterThanExtraDependency = true
-                            if buttonMain == 1 then
-                                while isThisBetterThanExtraDependency do
-                                    wait(0)
-                                    for i = 1, 200 do
-                                        if isKeyDown(i) then
-                                            sampAddChatMessage(getMessage('legacyChangeKeySuccess') ..
-                                                (cfg.tactical.alt and "LEFT ALT + " or "") ..
-                                                (key and key.id_to_name(i) or tostring(i)), -1)
-                                            cfg.tactical.key = i
-                                            addOneOffSound(0.0, 0.0, 0.0, 1052)
-                                            saveCfg()
-                                            isThisBetterThanExtraDependency = false
-                                            break
-                                        end
-                                    end
-                                end
-                                callMenu(14)
-                                return false
-                            else
-                                return true
-                            end
-                        end
-                    },
-                    createSimpleToggle("tactical", "alt", getMessage("settingTacticalAlt"), not cfg.tactical.enable,
-                        function()
-                            callMenu(14)
-                            return false
-                        end),
-                }
-            },
-            --tactical settings
-            {
-                title = (not cfg.tactical.enable and "{696969}" or "") .. getMessage("settingTacticalSection"),
-                submenu = {
-                    createSimpleToggle("tactical", "instant", getMessage("settingTacticalInstant"),
-                        not cfg.tactical.enable),
-                    createEmptyLine(),
-                    createSimpleSlider("tactical", "cooldown",
-                        (not cfg.tactical.enable and "{696969}" or "") .. getMessage('settingTacticalCooldown'),
-                        getMessage("settingTacticalCooldownCaption"), "OK", 6, 100,
-                        1, function(v)
-                            saveCfg()
-                        end),
-                }
-            },
+                title = getMessage('openWraithTactical'),
+                onclick = function()
+                    sampProcessChatInput('/wraith-tactical')
+                end
+            } or
+            createLinkRow(getMessage("openWraithTacticalThread"), "https://www.blast.hk/threads//")
         }
     end
     --audio section
