@@ -17,7 +17,7 @@ local enable_autoupdate = true -- false to disable auto-update + disable sending
 --pls dont use this in your projects, I do not plan to maintain this module for a long time
 local aimline = {}
 do
-    aimline._VERSION = "0.0.1"
+    aimline._VERSION = "0.0.2"
 
     -- the aspect ratio snippet is being worked on here:  https://www.blast.hk/threads/198256/ https://github.com/qrlk/wraith-xiaomi
 
