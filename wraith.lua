@@ -14,7 +14,7 @@ local enable_autoupdate = true -- false to disable auto-update + disable sending
 
 --^^ none of it works if wraith.lua is loaded as a module.
 
---pls dont use this in your projects, I do not plan to maintain this lib for a long time
+--pls dont use this in your projects, I do not plan to maintain this module for a long time
 local aimline = {}
 do
     aimline._VERSION = "0.0.1"
@@ -342,7 +342,7 @@ do
 end
 
 if pcall(debug.getlocal, 4, 1) then
-    return mod
+    return aimline
 else
     print("script")
 end
@@ -576,11 +576,56 @@ local i18n = {
             ru = "Реакция на прицеливание"
         },
 
+        settingPassiveNeedAimLine = {
+            en = "Calculate aimline",
+            ru = "Просчитывать линию прицела"
+        },
+        settingPassiveNeedAimLineRectangleCuboidCar = {
+            en = "Calculate cuboid in car (aimline)",
+            ru = "Просчитывать кубоид в машине (прицел)"
+        },
+        settingPassiveNeedAimLineRectangleCuboidFoot = {
+            en = "Calculate cuboid on foot (aimline)",
+            ru = "Просчитывать кубоид на ногах (прицел)"
+        },
+
+
+        settingPassiveNeedBulletRectangleCuboidCar = {
+            en = "Calculate cuboid in car (bullet)",
+            ru = "Просчитывать кубоид в машине (пуля)"
+        },
+        settingPassiveNeedBulletRectangleCuboidFoot = {
+            en = "Calculate cuboid on foot (bullet)",
+            ru = "Просчитывать кубоид на ногах (пуля)"
+        },
+
+        settingPassiveSectionBullet = {
+            en = "Reaction to bullet",
+            ru = "Реакция на пулю"
+        },
+
+        settingPassiveTracerB = {
+            en = "Show temporary tracer to enemy",
+            ru = "Показывать временный трасер"
+        },
+        settingPassiveStringB = {
+            en = "Show gametext warning",
+            ru = "Показывать gametext строку"
+        },
+
+        settingPassiveAddOffSoundB = {
+            en = "Play checkpoint sound",
+            ru = "Воспроизводить звук чекпоинта"
+        },
+
         settingPassiveSectionWarn = {
             en = "Reaction to a surprise attack",
             ru = "Реакция на внезапную атаку"
         },
-
+        settingPassiveNeedBullet = {
+            en = "Calculate bullets",
+            ru = "Просчитывать пули"
+        },
         settingPassiveTracer = {
             en = "Show temporary tracer to enemy when ability is triggered",
             ru = "Показывать временный трасер"
@@ -643,6 +688,10 @@ local i18n = {
         settingPassiveCooldownCaption = {
             en = "Set passive cooldown. Use your keyboard arrows.",
             ru = "Настройка кулдауна пассивной. Используйте стрелки клавиатуры."
+        },
+        settingPassiveSmartTracer = {
+            en = "Calculate tracer behind fov",
+            ru = "Просчитывать трасер за фовом"
         },
 
         tacticalUnderZWarning = {
@@ -930,9 +979,23 @@ local cfg = inicfg.load({
     },
     passive = {
         enable = true,
-        printStyledString = true,
+        needAimLine = true,
+        needAimLineRectangleCuboidFoot = true,
+        needAimLineRectangleCuboidCar = false,
+
         showTempTracer = true,
+        printStyledString = true,
         addOneOffSound = false,
+
+        needBullet = false,
+        needBulletRectangleCuboidFoot = true,
+        needBulletRectangleCuboidCar = false,
+        showTempTracerB = true,
+        printStyledStringB = true,
+        addOneOffSoundB = false,
+
+        smartTracer = true,
+
         warnSoundRespectCooldown = true,
         warnAddOneOffSound = false,
         showTempTracerWarn = true,
@@ -1083,6 +1146,15 @@ function main()
     while true do
         wait(0)
 
+        -- if isCharInAnyCar(playerPed) then
+        --     debugRenderCarCube(storeCarCharIsInNoSave(playerPed), getCarModelCorners, "0xFFffff4d")
+        --     debugRenderCarCube(storeCarCharIsInNoSave(playerPed), getCarModelCornersStable, "0xFFff004d")
+        -- else
+        --     if doesCharExist(playerPed) then
+        --         debugRenderCharCube(playerPed)
+        --     end
+        -- end
+
         if cfg.tactical.enable then
             processTactical()
         end
@@ -1112,59 +1184,142 @@ local TRACE_PEDS = {}
 function preparePassive()
     aimline.init()
     aimline.addEventHandler(function(res)
-        if cfg.passive.enable then
+        if cfg.passive.enable and cfg.passive.needAimLine then
+            local needToGoDeep = cfg.passive.needAimLineRectangleCuboidFoot or cfg.passive.needAimLineRectangleCuboidCar
             local result, colPoint = processLineOfSight(res.aimline.p1x, res.aimline.p1y, res.aimline.p1z,
                 res.aimline.p2x,
                 res.aimline.p2y, res.aimline.p2z, true, true, true, true,
                 true, true, true, true)
             if result then
                 if colPoint.entityType == 3 and colPoint.entity == getCharPointer(playerPed) then
+                    needToGoDeep = false
                     passiveCharBeingAimedByChar(playerPed, res.char, res.weapon)
                 end
                 if colPoint.entityType == 2 and isCharInAnyCar(playerPed) and car == getCarPointer(storeCarCharIsInNoSave(playerPed)) then
+                    needToGoDeep = false
                     passiveVehicleBeingAimedByChar(colPoint.entity, res.char, res.weapon)
+                end
+            end
+            if needToGoDeep then
+                local line = Line.new({ res.aimline.p1x, res.aimline.p1y, res.aimline.p1z }, { res.aimline.p2x,
+                    res.aimline.p2y, res.aimline.p2z })
+                local posX, posY, posZ = getCharCoordinates(playerPed)
+                local d1 = getDistanceBetweenCoords3d(posX, posY, posZ, res.aimline.p1x, res.aimline.p1y, res.aimline
+                    .p1z)
+                local p2 = line:getPointAtDistance(1)
+                local d2 = getDistanceBetweenCoords3d(posX, posY, posZ, p2[1], p2[2], p2[3])
+                if d2 < d1 then
+                    if isCharInAnyCar(playerPed) and cfg.passive.needAimLineRectangleCuboidCar then
+                        local car = storeCarCharIsInNoSave(playerPed)
+                        if doesVehicleExist(car) then
+                            local corners = getCarModelCorners(getCarModel(car), car)
+                            local result = line:hasPointInsideRectangularCuboid(corners)
+                            if result then
+                                passiveVehicleBeingAimedByChar(getCarPointer(car), res.char, res.weapon)
+                            end
+                        end
+                    elseif cfg.passive.needAimLineRectangleCuboidFoot then
+                        local corners = getCharModelCorners(getCharModel(playerPed), playerPed)
+                        local result = line:hasPointInsideRectangularCuboid(corners)
+                        if result then
+                            passiveCharBeingAimedByChar(playerPed, res.char, res.weapon)
+                        end
+                    end
                 end
             end
         end
     end)
 
-    -- addEventHandler('onReceivePacket', function(id, bs)
-    --     if cfg.passive.enable and id == 206 then
-    --         local bullet = {}
-    --         local packetId = raknetBitStreamReadInt8(bs)
-    --         local playerId = raknetBitStreamReadInt8(bs)
-    --         local unknown = raknetBitStreamReadInt8(bs)
-    --         local type = raknetBitStreamReadInt8(bs)
-    --         local targetId = raknetBitStreamReadInt16(bs)
-    --         local originX = raknetBitStreamReadFloat(bs)
-    --         local originY = raknetBitStreamReadFloat(bs)
-    --         local originZ = raknetBitStreamReadFloat(bs)
-    --         local hitX = raknetBitStreamReadFloat(bs)
-    --         local hitY = raknetBitStreamReadFloat(bs)
-    --         local hitZ = raknetBitStreamReadFloat(bs)
-    --         local offsetX = raknetBitStreamReadFloat(bs)
-    --         local offsetY = raknetBitStreamReadFloat(bs)
-    --         local offsetZ = raknetBitStreamReadFloat(bs)
-    --         local weaponId = raknetBitStreamReadInt8(bs)
-    --         print(originX, originY, originZ, hitX, hitY, hitZ, offsetX, offsetY, offsetZ)
+    addEventHandler('onReceivePacket', function(id, bs)
+        if cfg.passive.enable and cfg.passive.needBullet and id == 206 then
+            local bullet = {}
+            local packetId = raknetBitStreamReadInt8(bs)
+            local playerId = raknetBitStreamReadInt8(bs)
+            local unknown = raknetBitStreamReadInt8(bs)
+            local type = raknetBitStreamReadInt8(bs)
+            local targetId = raknetBitStreamReadInt16(bs)
+            local originX = raknetBitStreamReadFloat(bs)
+            local originY = raknetBitStreamReadFloat(bs)
+            local originZ = raknetBitStreamReadFloat(bs)
+            local hitX = raknetBitStreamReadFloat(bs)
+            local hitY = raknetBitStreamReadFloat(bs)
+            local hitZ = raknetBitStreamReadFloat(bs)
+            local offsetX = raknetBitStreamReadFloat(bs)
+            local offsetY = raknetBitStreamReadFloat(bs)
+            local offsetZ = raknetBitStreamReadFloat(bs)
+            local weaponId = raknetBitStreamReadInt8(bs)
+            if offsetX ~= 0 and offsetY ~= 0 and offsetZ ~= 0 then
+                local d = getDistanceBetweenCoords3d(originX, originY, originZ, hitX, hitY, hitZ)
+                if d > 1 and d < 1000 then
+                    local line = Line.new({ originX, originY, originZ }, { hitX, hitY, hitZ })
 
-    --         if offsetX ~= 0 and offsetY ~= 0 and offsetZ ~= 0 then
-    --             local result, colPoint = processLineOfSight(originX, originY, originZ, offsetX, offsetY, offsetZ, true,
-    --                 true, true, true, true, true, true, true)
-    --                 print(result, colPoint)
-    --             if result then
-    --                 print(colPoint.entityType)
-    --                 if colPoint.entityType == 3 and colPoint.entity == getCharPointer(playerPed) then
-    --                     passiveCharBeingAimedByChar(playerPed, res.char, res.weapon)
-    --                 end
-    --                 if colPoint.entityType == 2 and isCharInAnyCar(playerPed) and car == getCarPointer(storeCarCharIsInNoSave(playerPed)) then
-    --                     passiveVehicleBeingAimedByChar(colPoint.entity, res.char, res.weapon)
-    --                 end
-    --             end
-    --         end
-    --     end
-    -- end
-    -- )
+                    local p = line:getPointAtDistance(0.1)
+                    local result, colPoint = processLineOfSight(originX, originY, originZ, p[1], p[2], p[3], true,
+                        true, true, true, true, true, true, true)
+
+                    local needToGoDeep = cfg.passive.needBulletRectangleCuboidFoot or
+                        cfg.passive.needBulletRectangleCuboidCar
+                    if result then
+                        if colPoint.entityType == 3 and colPoint.entity == getCharPointer(playerPed) then
+                            needToGoDeep = false
+
+                            if sampIsPlayerConnected(playerId) then
+                                local res, char = sampGetCharHandleBySampPlayerId(playerId)
+                                if res then
+                                    passiveCharBeingAimedByChar(playerPed, char, weaponId)
+                                end
+                            end
+                        end
+                        if colPoint.entityType == 2 and isCharInAnyCar(playerPed) and car == getCarPointer(storeCarCharIsInNoSave(playerPed)) then
+                            needToGoDeep = false
+
+                            if sampIsPlayerConnected(playerId) then
+                                local res, char = sampGetCharHandleBySampPlayerId(playerId)
+                                if res then
+                                    passiveVehicleBeingAimedByChar(colPoint.entity, char, weaponId)
+                                end
+                            end
+                        end
+                    end
+                    if needToGoDeep then
+                        local posX, posY, posZ = getCharCoordinates(playerPed)
+                        local d1 = getDistanceBetweenCoords3d(posX, posY, posZ, originX, originY, originZ)
+                        local p2 = line:getPointAtDistance(1)
+                        local d2 = getDistanceBetweenCoords3d(posX, posY, posZ, p2[1], p2[2], p2[3])
+                        if d2 < d1 then
+                            if isCharInAnyCar(playerPed) and cfg.passive.needBulletRectangleCuboidCar then
+                                local car = storeCarCharIsInNoSave(playerPed)
+                                if doesVehicleExist(car) then
+                                    local corners = getCarModelCorners(getCarModel(car), car)
+                                    local res = line:hasPointInsideRectangularCuboid(corners)
+                                    if res then
+                                        if sampIsPlayerConnected(playerId) then
+                                            local res, char = sampGetCharHandleBySampPlayerId(playerId)
+                                            if res then
+                                                passiveCharBulletByChar(playerPed, char, weaponId)
+                                            end
+                                        end
+                                    end
+                                end
+                            elseif cfg.passive.needBulletRectangleCuboidFoot then
+                                local corners = getCharModelCorners(getCharModel(playerPed), playerPed)
+                                local res = line:hasPointInsideRectangularCuboid(corners)
+                                if res then
+                                    if sampIsPlayerConnected(playerId) then
+                                        local res, char = sampGetCharHandleBySampPlayerId(playerId)
+                                        if res then
+                                            passiveCharBulletByChar(playerPed, char, weaponId)
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    )
 end
 
 function processPassive()
@@ -1198,6 +1353,18 @@ function passiveCharBeingAimedByChar(ped, char, weapon)
     end
 end
 
+function passiveCharBulletByChar(ped, char, weapon)
+    if cfg.passive.enable then
+        if doesCharExist(ped) and ped == playerPed then
+            if weapon == 34 then
+                triggerPassive('sniper', char)
+            else
+                triggerPassive('bullet', char)
+            end
+        end
+    end
+end
+
 function passiveVehicleBeingAimedByChar(car, char, weapon)
     if cfg.passive.enable then
         if isCharInAnyCar(playerPed) and car == getCarPointer(storeCarCharIsInNoSave(playerPed)) then
@@ -1219,8 +1386,14 @@ function triggerPassive(typ, enemyPed)
                 addOneOffSound(0.0, 0.0, 0.0, 1147)
             end
 
-            if cfg.passive.addOneOffSound then
-                addOneOffSound(0.0, 0.0, 0.0, 1139)
+            if typ == "bullet" then
+                if cfg.passive.addOneOffSoundB then
+                    addOneOffSound(0.0, 0.0, 0.0, 1138)
+                end
+            else
+                if cfg.passive.addOneOffSound then
+                    addOneOffSound(0.0, 0.0, 0.0, 1139)
+                end
             end
 
             local nick = sampGetPlayerNickname(id)
@@ -1252,11 +1425,27 @@ function triggerPassive(typ, enemyPed)
                     printStyledString(string.format("DANGER!!! %s [%s] (%sm)", nick, id, dist),
                         cfg.passive.reactDuration * 1000, 5)
                 end
+            elseif typ == "bullet" then
+                if needWarn then
+                    playRandomFromCategory('vehicle')
+                end
+                if cfg.passive.printStyledStringB or (needWarn and cfg.passive.printStyledStringWarn) then
+                    printStyledString(string.format("BULLET!!! %s [%s] (%sm)", nick, id, dist),
+                        cfg.passive.reactDuration * 1000, 5)
+                end
             end
 
-            if cfg.passive.showTempTracer or (needWarn and cfg.passive.showTempTracerWarn) then
-                if doesCharExist(enemyPed) then
-                    TRACE_PEDS[enemyPed] = os.clock()
+            if typ == "bullet" then
+                if cfg.passive.showTempTracerB or (needWarn and cfg.passive.showTempTracerWarn) then
+                    if doesCharExist(enemyPed) then
+                        TRACE_PEDS[enemyPed] = os.clock()
+                    end
+                end
+            else
+                if cfg.passive.showTempTracer or (needWarn and cfg.passive.showTempTracerWarn) then
+                    if doesCharExist(enemyPed) then
+                        TRACE_PEDS[enemyPed] = os.clock()
+                    end
                 end
             end
 
@@ -1280,32 +1469,104 @@ function triggerPassive(typ, enemyPed)
     end
 end
 
-function getCharModelCornersIn2d(id, handle)
+function getCharModelCorners(id, handle)
     local x1, y1, z1, x2, y2, z2 = getModelDimensions(id)
     local t = {
-        [1] = { convert3DCoordsToScreen(getOffsetFromCharInWorldCoords(handle, x1 * cfg.passive.p1, y1 * -1 * cfg.passive.p2, z1 * cfg.passive.p5)) },      -- {x = x1, y = y1 * -1.0, z = z1},
-        [2] = { convert3DCoordsToScreen(getOffsetFromCharInWorldCoords(handle, x1 * -1 * cfg.passive.p4, y1 * -1 * cfg.passive.p2, z1 * cfg.passive.p5)) }, -- {x = x1 * -1.0, y = y1 * -1.0, z = z1},
-        [3] = { convert3DCoordsToScreen(getOffsetFromCharInWorldCoords(handle, x1 * -1 * cfg.passive.p4, y1 * cfg.passive.p3, z1 * cfg.passive.p5)) },      -- {x = x1 * -1.0, y = y1, z = z1},
-        [4] = { convert3DCoordsToScreen(getOffsetFromCharInWorldCoords(handle, x1 * 1 * cfg.passive.p1, y1 * 1 * cfg.passive.p3, z1 * cfg.passive.p5)) },   -- {x = x1, y = y1, z = z1},
-        [5] = { convert3DCoordsToScreen(getOffsetFromCharInWorldCoords(handle, x2 * -1 * cfg.passive.p1, y2 * cfg.passive.p2, z2 * cfg.passive.p6)) },      -- {x = x2 * -1.0, y = 0, z = 0},
-        [6] = { convert3DCoordsToScreen(getOffsetFromCharInWorldCoords(handle, x2 * -1 * cfg.passive.p1, y2 * -1 * cfg.passive.p3, z2 * cfg.passive.p6)) }, -- {x = x2 * -1.0, y = y2 * -1.0, z = z2},
-        [7] = { convert3DCoordsToScreen(getOffsetFromCharInWorldCoords(handle, x2 * cfg.passive.p4, y2 * -1 * cfg.passive.p3, z2 * cfg.passive.p6)) },      -- {x = x2, y = y2 * -1.0, z = z2},
-        [8] = { convert3DCoordsToScreen(getOffsetFromCharInWorldCoords(handle, x2 * cfg.passive.p4, y2 * cfg.passive.p2, z2 * cfg.passive.p6)) },           -- {x = x2, y = y2, z = z2},
+        [1] = { getOffsetFromCharInWorldCoords(handle, x1 * cfg.passive.p1, y1 * -1 * cfg.passive.p2, z1 * cfg.passive.p5) },
+        [2] = { getOffsetFromCharInWorldCoords(handle, x1 * -1 * cfg.passive.p4, y1 * -1 * cfg.passive.p2, z1 * cfg.passive.p5) },
+        [3] = { getOffsetFromCharInWorldCoords(handle, x1 * -1 * cfg.passive.p4, y1 * cfg.passive.p3, z1 * cfg.passive.p5) },
+        [4] = { getOffsetFromCharInWorldCoords(handle, x1 * 1 * cfg.passive.p1, y1 * 1 * cfg.passive.p3, z1 * cfg.passive.p5) },
+        [5] = { getOffsetFromCharInWorldCoords(handle, x2 * -1 * cfg.passive.p1, y2 * cfg.passive.p2, z2 * cfg.passive.p6) },
+        [6] = { getOffsetFromCharInWorldCoords(handle, x2 * cfg.passive.p4, y2 * cfg.passive.p2, z2 * cfg.passive.p6) },
+        [7] = { getOffsetFromCharInWorldCoords(handle, x2 * cfg.passive.p4, y2 * -1 * cfg.passive.p3, z2 * cfg.passive.p6) },
+        [8] = { getOffsetFromCharInWorldCoords(handle, x2 * -1 * cfg.passive.p1, y2 * -1 * cfg.passive.p3, z2 * cfg.passive.p6) },
     }
     return t
 end
 
-function getCarModelCornersIn2d(id, handle)
+function getCarModelCorners(id, handle)
+    local x1, y1, z1, x2, y2, z2 = getModelDimensions(id)
+
+    local original = {
+        [1] = { getOffsetFromCarInWorldCoords(handle, x1 * cfg.passive.c1, y1 * -1 * cfg.passive.c2, z1 * cfg.passive.c5) },
+        [2] = { getOffsetFromCarInWorldCoords(handle, x1 * -1 * cfg.passive.c4, y1 * -1 * cfg.passive.c2, z1 * cfg.passive.c5) },
+        [3] = { getOffsetFromCarInWorldCoords(handle, x1 * -1 * cfg.passive.c4, y1 * cfg.passive.c3, z1 * cfg.passive.c5) },
+        [4] = { getOffsetFromCarInWorldCoords(handle, x1 * 1 * cfg.passive.c1, y1 * 1 * cfg.passive.c3, z1 * cfg.passive.c5) },
+        [5] = { getOffsetFromCarInWorldCoords(handle, x2 * -1 * cfg.passive.c1, y2 * cfg.passive.c2, z2 * cfg.passive.c6) },
+        [6] = { getOffsetFromCarInWorldCoords(handle, x2 * cfg.passive.c4, y2 * cfg.passive.c2, z2 * cfg.passive.c6) },
+        [7] = { getOffsetFromCarInWorldCoords(handle, x2 * cfg.passive.c4, y2 * -1 * cfg.passive.c3, z2 * cfg.passive.c6) },
+        [8] = { getOffsetFromCarInWorldCoords(handle, x2 * -1 * cfg.passive.c1, y2 * -1 * cfg.passive.c3, z2 * cfg.passive.c6) },
+    }
+
+    local t = {}
+
+    for k, v in pairs(original) do
+        t[k] = v
+    end
+
+    t[5] = { t[1][1], t[1][2], ({ getOffsetFromCarInWorldCoords(handle, x1 * cfg.passive.c1, y1 * -1 * cfg.passive.c2, z2 * cfg.passive.c6) })
+        [3] }
+    t[6] = { t[2][1], t[2][2], ({ getOffsetFromCarInWorldCoords(handle, x1 * -1 * cfg.passive.c4, y1 * -1 * cfg.passive.c2, z2 * cfg.passive.c6) })
+        [3] }
+    t[7] = { t[3][1], t[3][2], ({ getOffsetFromCarInWorldCoords(handle, x1 * -1 * cfg.passive.c4, y1 * cfg.passive.c3, z2 * cfg.passive.c6) })
+        [3] }
+    t[8] = { t[4][1], t[4][2], ({ getOffsetFromCarInWorldCoords(handle, x1 * 1 * cfg.passive.c1, y1 * 1 * cfg.passive.c3, z2 * cfg.passive.c6) })
+        [3] }
+
+    local min = t[1][3]
+    local max = t[5][3]
+    for k, v in pairs(t) do
+        if v[3] < min then
+            min = v[3]
+        end
+        if v[3] > max then
+            max = v[3]
+        end
+    end
+    local roll = getCarRoll(handle)
+    if roll > 5 and roll < 90 or (roll < -90) then
+        t[1][1] = original[5][1]
+        t[1][2] = original[5][2]
+        t[4][1] = original[8][1]
+        t[4][2] = original[8][2]
+        t[5][1] = original[5][1]
+        t[5][2] = original[5][2]
+        t[8][1] = original[8][1]
+        t[8][2] = original[8][2]
+    elseif roll > -90 and roll < -5 or (roll > 90 and roll < 180) then
+        t[2][1] = original[6][1]
+        t[2][2] = original[6][2]
+        t[3][1] = original[7][1]
+        t[3][2] = original[7][2]
+        t[6][1] = original[6][1]
+        t[6][2] = original[6][2]
+        t[7][1] = original[7][1]
+        t[7][2] = original[7][2]
+    end
+
+    t[1][3] = min
+    t[2][3] = min
+    t[3][3] = min
+    t[4][3] = min
+    t[5][3] = max
+    t[6][3] = max
+    t[7][3] = max
+    t[8][3] = max
+
+    return t
+end
+
+function getCarModelCornersStable(id, handle)
     local x1, y1, z1, x2, y2, z2 = getModelDimensions(id)
     local t = {
-        [1] = { convert3DCoordsToScreen(getOffsetFromCarInWorldCoords(handle, x1 * cfg.passive.c1, y1 * -1 * cfg.passive.c2, z1 * cfg.passive.c5)) },
-        [2] = { convert3DCoordsToScreen(getOffsetFromCarInWorldCoords(handle, x1 * -1 * cfg.passive.c4, y1 * -1 * cfg.passive.c2, z1 * cfg.passive.c5)) },
-        [3] = { convert3DCoordsToScreen(getOffsetFromCarInWorldCoords(handle, x1 * -1 * cfg.passive.c4, y1 * cfg.passive.c3, z1 * cfg.passive.c5)) },
-        [4] = { convert3DCoordsToScreen(getOffsetFromCarInWorldCoords(handle, x1 * 1 * cfg.passive.c1, y1 * 1 * cfg.passive.c3, z1 * cfg.passive.c5)) },
-        [5] = { convert3DCoordsToScreen(getOffsetFromCarInWorldCoords(handle, x2 * -1 * cfg.passive.c1, y2 * cfg.passive.c2, z2 * cfg.passive.c6)) },
-        [6] = { convert3DCoordsToScreen(getOffsetFromCarInWorldCoords(handle, x2 * -1 * cfg.passive.c1, y2 * -1 * cfg.passive.c3, z2 * cfg.passive.c6)) },
-        [7] = { convert3DCoordsToScreen(getOffsetFromCarInWorldCoords(handle, x2 * cfg.passive.c4, y2 * -1 * cfg.passive.c3, z2 * cfg.passive.c6)) },
-        [8] = { convert3DCoordsToScreen(getOffsetFromCarInWorldCoords(handle, x2 * cfg.passive.c4, y2 * cfg.passive.c2, z2 * cfg.passive.c6)) }
+        [1] = { getOffsetFromCarInWorldCoords(handle, x1 * cfg.passive.c1, y1 * -1 * cfg.passive.c2, z1 * cfg.passive.c5) },
+        [2] = { getOffsetFromCarInWorldCoords(handle, x1 * -1 * cfg.passive.c4, y1 * -1 * cfg.passive.c2, z1 * cfg.passive.c5) },
+        [3] = { getOffsetFromCarInWorldCoords(handle, x1 * -1 * cfg.passive.c4, y1 * cfg.passive.c3, z1 * cfg.passive.c5) },
+        [4] = { getOffsetFromCarInWorldCoords(handle, x1 * 1 * cfg.passive.c1, y1 * 1 * cfg.passive.c3, z1 * cfg.passive.c5) },
+        [5] = { getOffsetFromCarInWorldCoords(handle, x2 * -1 * cfg.passive.c1, y2 * cfg.passive.c2, z2 * cfg.passive.c6) },
+        [6] = { getOffsetFromCarInWorldCoords(handle, x2 * cfg.passive.c4, y2 * cfg.passive.c2, z2 * cfg.passive.c6) },
+        [7] = { getOffsetFromCarInWorldCoords(handle, x2 * cfg.passive.c4, y2 * -1 * cfg.passive.c3, z2 * cfg.passive.c6) },
+        [8] = { getOffsetFromCarInWorldCoords(handle, x2 * -1 * cfg.passive.c1, y2 * -1 * cfg.passive.c3, z2 * cfg.passive.c6) },
     }
     return t
 end
@@ -1565,74 +1826,241 @@ end
 function drawDebugLine(ax, ay, az, bx, by, bz, color1, color2, color3)
     local _1, x1, y1, z1 = convert3DCoordsToScreenEx(ax, ay, az)
     local _2, x2, y2, z2 = convert3DCoordsToScreenEx(bx, by, bz)
-    if _1 and _2 and z1 > 0 and z2 > 0 then
-        renderDrawPolygon(x1, y1, 10, 10, 10, 0.0, color1)
-        renderDrawLine(x1, y1, x2, y2, 2, color2)
-        renderDrawPolygon(x2, y2, 10, 10, 10, 0.0, color3)
-    end
-end
+    if _1 and _2 and z1 > 0 then
+        if z2 > 0 then
+            renderDrawPolygon(x1, y1, 10, 10, 10, 0.0, color1)
+            renderDrawLine(x1, y1, x2, y2, 2, color2)
+            renderDrawPolygon(x2, y2, 10, 10, 10, 0.0, color3)
+        elseif cfg.passive.smartTracer then
+            local line = Line.new({ ax, ay, az }, { bx, by, bz })
+            local lastPointOnScreen = line:getLastPointOnScreen()
+            if lastPointOnScreen then
+                renderDrawPolygon(x1, y1, 10, 10, 10, 0.0, color1)
 
-function createTemporaryTracer(tracePed, seconds)
-    local start = os.clock()
-    while start + seconds > os.clock() do
-        wait(0)
-        if doesCharExist(tracePed) then
-            local x, y, z = getCharCoordinates(playerPed)
-            local mX, mY, mZ = getCharCoordinates(tracePed)
-
-            drawDebugLine(x, y, z, mX, mY, mZ, 0xffFF00FF, 0xffFF00FF, 0xffFF00FF)
+                local _2, x2, y2, z2 = convert3DCoordsToScreenEx(lastPointOnScreen[1], lastPointOnScreen[2],
+                    lastPointOnScreen[3])
+                if z2 > 0 then
+                    renderDrawLine(x1, y1, x2, y2, 2, color2)
+                    renderDrawPolygon(x2, y2, 10, 10, 10, 0.0, color3)
+                end
+            end
         end
     end
 end
 
--- local font = renderCreateFont('Tahoma', 10, 4)
+local font = renderCreateFont('Tahoma', 10, 4)
 
 function debugRenderCharCube(ped)
     if doesCharExist(ped) then
-        local c = getCharModelCornersIn2d(getCharModel(ped), ped)
-        for i = 1, #c do
-            renderDrawPolygon(c[i][1] - 2, c[i][2] - 2, 10, 10, 10, 0, 0xFFff004d)
-            -- renderFontDrawText(font, 'Corner #' .. i, c[i][1], c[i][2], 0xFFFFFFFF, 0x90000000)
+        local c = getCharModelCorners(getCharModel(ped), ped)
+
+        local r = {}
+        for k, v in pairs(c) do
+            r[k] = { convert3DCoordsToScreen(table.unpack(v)) }
         end
-        renderDrawLine(c[1][1], c[1][2], c[2][1], c[2][2], 2, 0xFFff004d)
-        renderDrawLine(c[2][1], c[2][2], c[3][1], c[3][2], 2, 0xFFff004d)
-        renderDrawLine(c[3][1], c[3][2], c[4][1], c[4][2], 2, 0xFFff004d)
-        renderDrawLine(c[4][1], c[4][2], c[1][1], c[1][2], 2, 0xFFff004d)
 
-        renderDrawLine(c[5][1], c[5][2], c[6][1], c[6][2], 2, 0xFFff004d)
-        renderDrawLine(c[6][1], c[6][2], c[7][1], c[7][2], 2, 0xFFff004d)
-        renderDrawLine(c[7][1], c[7][2], c[8][1], c[8][2], 2, 0xFFff004d)
-        renderDrawLine(c[8][1], c[8][2], c[5][1], c[5][2], 2, 0xFFff004d)
+        for i = 1, #r do
+            renderDrawPolygon(r[i][1] - 2, r[i][2] - 2, 10, 10, 10, 0, 0xFFff004d)
+            renderFontDrawText(font, 'Corner #' .. i, r[i][1], r[i][2], 0xFFFFFFFF, 0x90000000)
+        end
 
-        renderDrawLine(c[1][1], c[1][2], c[5][1], c[5][2], 2, 0xFFff004d)
-        renderDrawLine(c[2][1], c[2][2], c[8][1], c[8][2], 2, 0xFFff004d)
-        renderDrawLine(c[3][1], c[3][2], c[7][1], c[7][2], 2, 0xFFff004d)
-        renderDrawLine(c[4][1], c[4][2], c[6][1], c[6][2], 2, 0xFFff004d)
+        renderDrawLine(r[1][1], r[1][2], r[2][1], r[2][2], 2, 0xFFff004d)
+        renderDrawLine(r[2][1], r[2][2], r[3][1], r[3][2], 2, 0xFFff004d)
+        renderDrawLine(r[3][1], r[3][2], r[4][1], r[4][2], 2, 0xFFff004d)
+        renderDrawLine(r[4][1], r[4][2], r[1][1], r[1][2], 2, 0xFFff004d)
+
+        renderDrawLine(r[5][1], r[5][2], r[8][1], r[8][2], 2, 0xFFff004d)
+        renderDrawLine(r[8][1], r[8][2], r[7][1], r[7][2], 2, 0xFFff004d)
+        renderDrawLine(r[6][1], r[6][2], r[5][1], r[5][2], 2, 0xFFff004d)
+        renderDrawLine(r[7][1], r[7][2], r[6][1], r[6][2], 2, 0xFFff004d)
+
+        renderDrawLine(r[1][1], r[1][2], r[5][1], r[5][2], 2, 0xFFff004d)
+        renderDrawLine(r[2][1], r[2][2], r[6][1], r[6][2], 2, 0xFFff004d)
+        renderDrawLine(r[3][1], r[3][2], r[7][1], r[7][2], 2, 0xFFff004d)
+        renderDrawLine(r[4][1], r[4][2], r[8][1], r[8][2], 2, 0xFFff004d)
     end
 end
 
-function debugRenderCarCube(car)
+function debugRenderCarCube(car, func, color)
     if doesVehicleExist(car) then
-        local c = getCarModelCornersIn2d(getCarModel(car), car)
-        for i = 1, #c do
-            renderDrawPolygon(c[i][1] - 2, c[i][2] - 2, 10, 10, 10, 0, 0xFFff004d)
-            -- renderFontDrawText(font, 'Corner #' .. i, c[i][1], c[i][2], 0xFFFFFFFF, 0x90000000)
+        local c = func(getCarModel(car), car)
+
+        local r = {}
+        for k, v in pairs(c) do
+            r[k] = { convert3DCoordsToScreen(table.unpack(v)) }
         end
-        renderDrawLine(c[1][1], c[1][2], c[2][1], c[2][2], 2, 0xFFff004d)
-        renderDrawLine(c[2][1], c[2][2], c[3][1], c[3][2], 2, 0xFFff004d)
-        renderDrawLine(c[3][1], c[3][2], c[4][1], c[4][2], 2, 0xFFff004d)
-        renderDrawLine(c[4][1], c[4][2], c[1][1], c[1][2], 2, 0xFFff004d)
 
-        renderDrawLine(c[5][1], c[5][2], c[6][1], c[6][2], 2, 0xFFff004d)
-        renderDrawLine(c[6][1], c[6][2], c[7][1], c[7][2], 2, 0xFFff004d)
-        renderDrawLine(c[7][1], c[7][2], c[8][1], c[8][2], 2, 0xFFff004d)
-        renderDrawLine(c[8][1], c[8][2], c[5][1], c[5][2], 2, 0xFFff004d)
+        for i = 1, #r do
+            renderDrawPolygon(r[i][1] - 2, r[i][2] - 2, 10, 10, 10, 0, color)
+            renderFontDrawText(font, 'Corner #' .. i, r[i][1], r[i][2], 0xFFFFFFFF, 0x90000000)
+        end
 
-        renderDrawLine(c[1][1], c[1][2], c[5][1], c[5][2], 2, 0xFFff004d)
-        renderDrawLine(c[2][1], c[2][2], c[8][1], c[8][2], 2, 0xFFff004d)
-        renderDrawLine(c[3][1], c[3][2], c[7][1], c[7][2], 2, 0xFFff004d)
-        renderDrawLine(c[4][1], c[4][2], c[6][1], c[6][2], 2, 0xFFff004d)
+        renderDrawLine(r[1][1], r[1][2], r[2][1], r[2][2], 2, color)
+        renderDrawLine(r[2][1], r[2][2], r[3][1], r[3][2], 2, color)
+        renderDrawLine(r[3][1], r[3][2], r[4][1], r[4][2], 2, color)
+        renderDrawLine(r[4][1], r[4][2], r[1][1], r[1][2], 2, color)
+
+        renderDrawLine(r[5][1], r[5][2], r[8][1], r[8][2], 2, color)
+        renderDrawLine(r[8][1], r[8][2], r[7][1], r[7][2], 2, color)
+        renderDrawLine(r[6][1], r[6][2], r[5][1], r[5][2], 2, color)
+        renderDrawLine(r[7][1], r[7][2], r[6][1], r[6][2], 2, color)
+
+        renderDrawLine(r[1][1], r[1][2], r[5][1], r[5][2], 2, color)
+        renderDrawLine(r[2][1], r[2][2], r[6][1], r[6][2], 2, color)
+        renderDrawLine(r[3][1], r[3][2], r[7][1], r[7][2], 2, color)
+        renderDrawLine(r[4][1], r[4][2], r[8][1], r[8][2], 2, color)
     end
+end
+
+Line = {}
+Line.__index = Line
+
+function Line.new(p1, p2)
+    local self = setmetatable({}, Line)
+    self.p1 = p1
+    self.p2 = p2
+    self.dx = p2[1] - p1[1]
+    self.dy = p2[2] - p1[2]
+    self.dz = p2[3] - p1[3]
+    self.magnitude = math.sqrt(self.dx * self.dx + self.dy * self.dy + self.dz * self.dz)
+    self.nx = self.dx / self.magnitude
+    self.ny = self.dy / self.magnitude
+    self.nz = self.dz / self.magnitude
+    return self
+end
+
+function Line:getPointAtDistance(distance)
+    local dx = self.nx * distance
+    local dy = self.ny * distance
+    local dz = self.nz * distance
+    return { self.p1[1] + dx, self.p1[2] + dy, self.p1[3] + dz }
+end
+
+function Line:isPointInsidePolygon(x, y, polygon)
+    local n = #polygon
+    local j = n
+    local inside = false
+    for i = 1, n do
+        local pi = polygon[i]
+        local pj = polygon[j]
+        if ((pi.y > y) ~= (pj.y > y)) and (x < (pj.x - pi.x) * (y - pi.y) / (pj.y - pi.y) + pi.x) then
+            inside = not inside
+        end
+        j = i
+    end
+    return inside
+end
+
+function Line:isPointInsideRectangularCuboid(point, corners, polygon)
+    if point[3] < corners[1][3] or point[3] > corners[5][3] then
+        return false
+    else
+        return self:isPointInsidePolygon(point[1], point[2], polygon)
+    end
+end
+
+function Line:test(corners)
+    -- Calculate the number of points to check
+    local numPoints = math.ceil(self.magnitude / 0.1)
+    -- Polygon to compare in 2d
+    local polygon = { { x = corners[1][1], y = corners[1][2] }, { x = corners[2][1], y = corners[2][2] }, { x = corners[3][1], y = corners[3][2] }, { x = corners[4][1], y = corners[4][2] } }
+
+    -- Iterate over the points
+    for i = 0, numPoints do
+        -- Get the point at the current distance along the line
+        local d = i * 0.1
+        if d < self.magnitude then
+            local point = self:getPointAtDistance(d)
+            local _3, x3, y3, z3 = convert3DCoordsToScreenEx(point[1], point[2], point[3])
+
+            -- Check if the point is inside the cube
+            local res = self:isPointInsideRectangularCuboid(point, corners, polygon)
+            if _3 and z3 > 0 then
+                renderDrawPolygon(x3, y3, 10, 10, 10, 0.0, res and 0xff00ffff or 0xffFF00FF)
+            end
+        end
+    end
+    -- No point was found inside the cube
+    return false
+end
+
+function Line:getLastPointOnScreen()
+    -- Calculate the number of points to check
+
+    local numPoints = math.ceil(self.magnitude / 0.1)
+    local lastPoint = false
+    -- Iterate over the points
+    for i = 0, numPoints do
+        -- Get the point at the current distance along the line
+        local d = i * 0.1
+        if d < self.magnitude then
+            local point = self:getPointAtDistance(d)
+
+            if isPointOnScreen(point[1], point[2], point[3], 0.1) then
+                lastPoint = point
+            else
+                return lastPoint
+            end
+        end
+    end
+
+    -- No point was found inside the cube
+    return false
+end
+
+function Line:getEdgesOnScreen(coof)
+    -- Calculate the number of points to check
+
+    local numPoints = math.ceil(self.magnitude / coof)
+    local firstPoint = false
+    local lastPoint = false
+    -- Iterate over the points
+    for i = 0, numPoints do
+        -- Get the point at the current distance along the line
+        local d = i * coof
+        if d < self.magnitude then
+            local point = self:getPointAtDistance(d)
+
+            if isPointOnScreen(point[1], point[2], point[3], 0.1) then
+                if not firstPoint then
+                    firstPoint = point
+                else
+                    lastPoint = point
+                end
+            end
+        end
+    end
+
+    if firstPoint and lastPoint then
+        return firstPoint, lastPoint
+    end
+
+    -- No point was found inside the cube
+    return false
+end
+
+function Line:hasPointInsideRectangularCuboid(corners)
+    -- Calculate the number of points to check
+
+    local numPoints = math.ceil(self.magnitude / 0.1)
+    -- Polygon to compare in 2d
+    local polygon = { { x = corners[1][1], y = corners[1][2] }, { x = corners[2][1], y = corners[2][2] }, { x = corners[3][1], y = corners[3][2] }, { x = corners[4][1], y = corners[4][2] } }
+    -- Iterate over the points
+    for i = 0, numPoints do
+        -- Get the point at the current distance along the line
+        local d = i * 0.1
+        if d < self.magnitude then
+            local point = self:getPointAtDistance(d)
+
+            -- Check if the point is inside the cube
+            if self:isPointInsideRectangularCuboid(point, corners, polygon) then
+                return true, point
+            end
+        end
+    end
+
+    -- No point was found inside the cube
+    return false
 end
 
 --------------------------------------------------------------------------------
@@ -1672,7 +2100,7 @@ function openMenu(pos)
                 (#prev_menus > 0) and back_button or close_button, 4)
             if pos then
                 sampSetCurrentDialogListItem(pos)
-                if pos > 20 then
+                if pos > 16 then
                     setVirtualKeyDown(40, true)
                     setVirtualKeyDown(40, false)
                     setVirtualKeyDown(38, true)
@@ -1864,7 +2292,7 @@ function openMenu(pos)
             return str
         end
         return {
-            title = text .. ": " .. tostring(cfg[group][setting1]),
+            title = text,
             onclick = function(menu, row)
                 for k, v in pairs({ setting1, setting2, setting3, setting4, settings5, setting6 }) do
                     if cfg[group][v] < min then
@@ -1931,8 +2359,6 @@ function openMenu(pos)
                         end
                     end
                 end
-
-                menu[row].title = text .. ": " .. tostring(cfg[group][setting1])
 
                 if not funcOnEnd then
                     return true
@@ -2005,6 +2431,8 @@ function openMenu(pos)
                         title = (not cfg.passive.enable and "{696969}" or "{808000}") ..
                             getMessage('settingPassiveSectionAimed')
                     },
+                    createSimpleToggle("passive", "needAimLine", getMessage("settingPassiveNeedAimLine"),
+                        not cfg.passive.enable),
                     createSimpleToggle("passive", "showTempTracer", getMessage("settingPassiveTracer"),
                         not cfg.passive.enable),
 
@@ -2012,13 +2440,23 @@ function openMenu(pos)
                         not cfg.passive.enable),
                     createSimpleToggle("passive", "addOneOffSound", getMessage("settingPassiveAddOffSound"),
                         not cfg.passive.enable),
-                    createSimpleSlider("passive", "reactDuration",
-                        (not cfg.passive.enable and "{696969}" or "") .. getMessage('settingPassiveDuration'),
-                        getMessage('settingPassiveDurationCaption'), "OK", 1, 20,
-                        1, function(v)
-                            saveCfg()
-                        end),
                     createEmptyLine(),
+
+                    {
+                        title = (not cfg.passive.enable and "{696969}" or "{808000}") ..
+                            getMessage('settingPassiveSectionBullet')
+                    },
+                    createSimpleToggle("passive", "needBullet", getMessage("settingPassiveNeedBullet"),
+                        not cfg.passive.enable),
+                    createSimpleToggle("passive", "showTempTracerB", getMessage("settingPassiveTracerB"),
+                        not cfg.passive.enable),
+
+                    createSimpleToggle("passive", "printStyledStringB", getMessage("settingPassiveStringB"),
+                        not cfg.passive.enable),
+                    createSimpleToggle("passive", "addOneOffSoundB", getMessage("settingPassiveAddOffSoundB"),
+                        not cfg.passive.enable),
+                    createEmptyLine(),
+
                     {
                         title = (not cfg.passive.enable and "{696969}" or "{808000}") ..
                             getMessage('settingPassiveSectionWarn')
@@ -2073,7 +2511,31 @@ function openMenu(pos)
 
                     createEmptyLine(),
 
-                    { title = (not cfg.passive.enable and "{696969}" or "{808000}") .. 'in development' },
+                    { title = (not cfg.passive.enable and "{696969}" or "{808000}") .. 'settings' },
+                    createSimpleToggle("passive", "smartTracer", getMessage("settingPassiveSmartTracer"),
+                        not cfg.passive.enable),
+
+                    createSimpleSlider("passive", "reactDuration",
+                        (not cfg.passive.enable and "{696969}" or "") .. getMessage('settingPassiveDuration'),
+                        getMessage('settingPassiveDurationCaption'), "OK", 1, 20,
+                        1, function(v)
+                            saveCfg()
+                        end),
+
+                    createSimpleToggle("passive", "needBulletRectangleCuboidFoot",
+                        getMessage("settingPassiveNeedBulletRectangleCuboidFoot"),
+                        not cfg.passive.enable),
+                    createSimpleToggle("passive", "needBulletRectangleCuboidCar",
+                        getMessage("settingPassiveNeedBulletRectangleCuboidCar"),
+                        not cfg.passive.enable),
+
+                    createSimpleToggle("passive", "needAimLineRectangleCuboidFoot",
+                        getMessage("settingPassiveNeedAimLineRectangleCuboidFoot"),
+                        not cfg.passive.enable),
+                    createSimpleToggle("passive", "needAimLineRectangleCuboidCar",
+                        getMessage("settingPassiveNeedAimLineRectangleCuboidCar"),
+                        not cfg.passive.enable),
+
                     createCubeAdjuster('passive', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6',
                         (not cfg.passive.enable and "{696969}" or "") .. getMessage('settingPassiveCharCube'),
                         getMessage('settingPassiveCharCubeCaption'), 'ok', 0.1, 10,
@@ -2084,6 +2546,7 @@ function openMenu(pos)
                             end
                         end, nil, function()
                             saveCfg()
+                            return true
                         end),
                     createCubeAdjuster('passive', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6',
                         (not cfg.passive.enable and "{696969}" or "") .. getMessage('settingPassiveCarCube'),
@@ -2091,10 +2554,13 @@ function openMenu(pos)
                         0.1,
                         function()
                             if isCharInAnyCar(PLAYER_PED) then
-                                debugRenderCarCube(storeCarCharIsInNoSave(PLAYER_PED))
+                                debugRenderCarCube(storeCarCharIsInNoSave(playerPed), getCarModelCorners, "0xFFffff4d")
+                                debugRenderCarCube(storeCarCharIsInNoSave(playerPed), getCarModelCornersStable,
+                                    "0xFFff004d")
                             end
                         end, nil, function()
                             saveCfg()
+                            return true
                         end)
                 },
             }
