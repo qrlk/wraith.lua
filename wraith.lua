@@ -2,7 +2,7 @@ require 'lib.moonloader'
 
 script_name("wraith.lua")
 script_author("qrlk")
-script_description("wraith passive + tactical")
+script_description("wraith passive")
 -- made for https://www.blast.hk/threads/193650/
 script_url("https://github.com/qrlk/wraith.lua")
 script_version("31.12.2023-rc4")
@@ -378,16 +378,6 @@ end
 
 --- start
 local inicfg = require "inicfg"
-local key = false
-pcall(function() key = require 'vkeys' end)
-
---local as_action = require('moonloader').audiostream_state
-local as_action = {
-    PAUSE = 2,
-    PLAY = 1,
-    RESUME = 3,
-    STOP = 0
-}
 
 local ffi = require("ffi")
 ffi.cdef [[
@@ -466,74 +456,6 @@ local i18n = {
             ru = "Показывать вступительное сообщение"
         },
 
-        sectionAudio = {
-            en = "Audio",
-            ru = "Аудио"
-        },
-
-        settingNoRadio = {
-            en = "Block radio selection in vehicles",
-            ru = "Блокировать выбор радио в машине"
-        },
-        checkAudioOff = {
-            en = "radio off",
-            ru = "радио выключено"
-        },
-        checkAudioOffNeedReboot = {
-            en = "radio on, pls restart the game",
-            ru = "радио вкл, но надо перезайти в игру"
-        },
-        checkAudioOn = {
-            en = "radio",
-            ru = "радио"
-        },
-        checkResourcesYes = {
-            en = "resources",
-            ru = "ресурсы"
-        },
-        checkResourcesNo = {
-            en = "resources not found",
-            ru = "ресурсы не найдены"
-        },
-        settingAudioEnable = {
-            en = "Enable audio from {ff0000}Apex Legends{ffffff}",
-            ru = "Включить аудио из {ff0000}Apex Legends{ffffff}"
-        },
-        settingIgnoreMissing = {
-            en = "Ignore missing sounds",
-            ru = "Игнорировать ненайденные звуки"
-        },
-
-        settingAudioLanguage = {
-            en = "Audio language",
-            ru = "Язык аудио"
-        },
-        settingVolume = {
-            en = "Base sound volume",
-            ru = "Базовая громкость звуков"
-        },
-        lang = {
-            en = "Audio lang: ",
-            ru = "Язык аудио: "
-        },
-        settingVolumeCaption = {
-            en = "Set preffered volume. Use your keyboard arrows.",
-            ru = "Настройка громкости. Используйте стрелки клавиатуры."
-        },
-
-        settingVolumeQuietOffset = {
-            en = "Increased volume for quiet sounds",
-            ru = "Увеличение для тихих звуков"
-        },
-        settingVolumeQuietOffsetCaption = {
-            en = "Set preffered volume. Use your keyboard arrows.",
-            ru = "Настройка громкости. Используйте стрелки клавиатуры."
-        },
-
-        randomSound = {
-            en = "Example: ",
-            ru = "Пример: "
-        },
 
         sectionPassive = {
             en = "{808000}Passive ability - Voices from the Void",
@@ -570,7 +492,6 @@ local i18n = {
             ru = "способность отключена"
         },
 
-
         settingPassiveSectionAimed = {
             en = "Reaction to aiming",
             ru = "Реакция на прицеливание"
@@ -588,7 +509,6 @@ local i18n = {
             en = "Calculate cuboid on foot (aimline)",
             ru = "Просчитывать кубоид на ногах (прицел)"
         },
-
 
         settingPassiveNeedBulletRectangleCuboidCar = {
             en = "Calculate cuboid in car (bullet)",
@@ -714,52 +634,6 @@ local i18n = {
             ru = "Открыть тему с wraith-tactical {ff0000}(палевный чит){ffffff}"
         },
 
-        settingTactical = {
-            en = "Into the Void {ff0000}(easily detectable cheat){ffffff}",
-            ru = "В Пустоту {ff0000}(очень палевный чит){ffffff}"
-        },
-        --todo
-        tooltipSettingTacticalEnable = {
-            en = "Reposition quickly through the safety of void space, avoiding all damage.",
-            ru = "Быстро перемещает вас сквозь Пустоту, позволяя избежать урона."
-        },
-
-        settingTacticalAlt = {
-            en = "Need to press LEFT ALT to activate",
-            ru = "Нужно зажать LEFT ALT для активации"
-        },
-
-        settingTacticalSection = {
-            en = "Tactical Ability Settings",
-            ru = "Настройки тактической способности"
-        },
-        settingTacticalCooldownCaption = {
-            en = "Set tactical cooldown. Use your keyboard arrows.",
-            ru = "Настройка кулдауна тактической. Используйте стрелки клавиатуры."
-        },
-        settingTacticalInstant = {
-            en = "Remove delay before activation",
-            ru = "Убрать задержку перед активацией"
-        },
-
-        phasingStart1 = {
-            en = "PHASING.. HOLD ",
-            ru = "PHASING.. DERJI "
-        },
-        phasingStart2 = {
-            en = " TO CANCEL",
-            ru = " DLYA OTMENI"
-        },
-        phasingCanceled = {
-            en = "PHASING CANCELLED",
-            ru = "OTMEHA"
-        },
-
-        settingTacticalCooldown = {
-            en = "Tactical ability cooldown (in seconds)",
-            ru = "Кулдаун тактической способности (в сек.)"
-        },
-
         debugScriptXiaomi = {
             en = "Open wraith-xiaomi thread (RU)",
             ru = "Открыть wraith-xiaomi "
@@ -786,30 +660,6 @@ local i18n = {
             ru = "{AAAAAA}Настройки"
         },
 
-        tacticalActivationMode = {
-            en = "Activation: ",
-            ru = "Активация: "
-        },
-        tacticalActivationDisabled = {
-            en = "ability disabled",
-            ru = "способность отключена"
-        },
-
-        tacticalKeyName = {
-            en = "Main key for activation: ",
-            ru = "Основная кнопка для активации: "
-        },
-
-        legacyChangeKeyTitle = {
-            en = "Changing hotkey",
-            ru = "Изменение горячей клавиши"
-        },
-
-        legacyChangeKeyText = {
-            en = 'Click "OK" and then press the desired key.\nThe setting will be changed.',
-            ru = 'Нажмите "Окей", после чего нажмите нужную клавишу.\nНастройки будут изменены.'
-        },
-
         legacyChangeKeyButton1 = {
             en = "OK",
             ru = "Окей"
@@ -818,20 +668,6 @@ local i18n = {
         legacyChangeKeyButton2 = {
             en = "Cancel",
             ru = "Отмена"
-        },
-        legacyChangeKeySuccess = {
-            en = "A new hotkey has been installed - ",
-            ru = "Установлена новая горячая клавиша - "
-        },
-
-        cantFindResources = {
-            en = "Can't find: ",
-            ru = "Не могу найти: "
-        },
-
-        pleaseDownloadResources = {
-            en = 'Download the resources from http://qrlk.me/wraith and place them in your moonloader folder!',
-            ru = 'Скачайте архив с ресурсами с http://qrlk.me/wraith и поместите в папку moonloader!'
         },
 
         button1 = {
@@ -890,102 +726,15 @@ local i18n = {
             en = "Setup car's cube",
             ru = "Настройка куба для машин"
         },
-    },
-    audioLangTable = {
-        en = { 'English', 'Russian', 'French', 'Italian', 'German', 'Spanish', 'Japanese', 'Korean', 'Polish', 'Chinese' },
-        ru = { 'Английский', 'Русский', 'Французский', 'Итальянский',
-            'Немецкий', 'Испанский', 'Японский', 'Корейский',
-            'Польский', 'Китайский' }
     }
 }
 
 --
-local audioLanguages = { 'en', 'ru', 'fr', 'it', 'de', 'es', 'ja', 'ko', 'pl', 'zh' }
-local audioLines = {
-    aiming = { "diag_mp_wraith_voices_seesPlayer_urgent_01_01_1p.mp3",
-        "diag_mp_wraith_voices_seesPlayer_urgent_01_02_1p.mp3",
-        "diag_mp_wraith_voices_seesPlayer_urgent_02_01_1p.mp3",
-        "diag_mp_wraith_voices_seesPlayer_urgent_02_02_1p.mp3",
-        "diag_mp_wraith_voices_seesPlayer_urgent_02_03_1p.mp3",
-        "diag_mp_wraith_voices_seesPlayer_urgent_03_01_1p.mp3",
-        "diag_mp_wraith_voices_seesPlayer_urgent_03_02_1p.mp3",
-        "diag_mp_wraith_voices_seesPlayer_urgent_04_01_1p.mp3",
-        "diag_mp_wraith_voices_seesPlayer_urgent_04_02_1p.mp3",
-        "diag_mp_wraith_voices_seesPlayer_urgent_05_01_1p.mp3",
-        "diag_mp_wraith_voices_seesPlayer_urgent_05_02_1p.mp3" },
-    lol = { "diag_mp_wraith_bc_locationAWH_01_01_1p.mp3", "diag_mp_wraith_bc_locationAWH_01_02_1p.mp3" },
-    no = { "diag_mp_wraith_ping_no_01_01_1p.mp3", "diag_mp_wraith_ping_no_01_02_1p.mp3",
-        "diag_mp_wraith_ping_no_01_03_1p.mp3", "diag_mp_wraith_ping_no_02_01_1p.mp3",
-        "diag_mp_wraith_ping_no_02_02_1p.mp3", "diag_mp_wraith_ping_no_02_03_1p.mp3" },
-    notReady = { "diag_mp_wraith_ping_ultUpdate_notReady_calm_01_01_1p.mp3",
-        "diag_mp_wraith_ping_ultUpdate_notReady_calm_01_02_1p.mp3",
-        "diag_mp_wraith_ping_ultUpdate_notReady_calm_02_01_1p.mp3",
-        "diag_mp_wraith_ping_ultUpdate_notReady_calm_02_02_1p.mp3",
-        "diag_mp_wraith_ping_ultUpdate_notReady_calm_02_03_1p.mp3",
-        "diag_mp_wraith_ping_ultUpdate_notReady_urgent_01_01_1p.mp3",
-        "diag_mp_wraith_ping_ultUpdate_notReady_urgent_01_02_1p.mp3",
-        "diag_mp_wraith_ping_ultUpdate_notReady_urgent_01_03_1p.mp3",
-        "diag_mp_wraith_ping_ultUpdate_notReady_urgent_02_01_1p.mp3",
-        "diag_mp_wraith_ping_ultUpdate_notReady_urgent_02_02_1p.mp3",
-        "diag_mp_wraith_ping_ultUpdate_notReady_urgent_02_03_1p.mp3" },
-    isReady = { "diag_mp_wraith_ping_ultUpdate_isReady_calm_01_01_1p.mp3",
-        "diag_mp_wraith_ping_ultUpdate_isReady_calm_01_02_1p.mp3",
-        "diag_mp_wraith_ping_ultUpdate_isReady_calm_01_03_1p.mp3",
-        "diag_mp_wraith_ping_ultUpdate_isReady_calm_01_04_1p.mp3",
-        "diag_mp_wraith_ping_ultUpdate_isReady_calm_01_05_1p.mp3",
-        "diag_mp_wraith_ping_ultUpdate_isReady_calm_02_01_1p.mp3",
-        "diag_mp_wraith_ping_ultUpdate_isReady_calm_02_02_1p.mp3",
-        "diag_mp_wraith_ping_ultUpdate_isReady_calm_02_03_1p.mp3",
-        "diag_mp_wraith_ping_ultUpdate_isReady_urgent_01_01_1p.mp3",
-        "diag_mp_wraith_ping_ultUpdate_isReady_urgent_01_02_1p.mp3",
-        "diag_mp_wraith_ping_ultUpdate_isReady_urgent_02_01_1p.mp3",
-        "diag_mp_wraith_ping_ultUpdate_isReady_urgent_02_02_1p.mp3",
-        "diag_mp_wraith_ping_ultUpdate_isReady_urgent_02_03_1p.mp3" },
-    sniper = { "diag_mp_wraith_voices_sniper_urgent_01_01_1p.mp3", "diag_mp_wraith_voices_sniper_urgent_01_02_1p.mp3",
-        "diag_mp_wraith_voices_sniper_urgent_01_03_1p.mp3", "diag_mp_wraith_voices_sniper_urgent_02_01_1p.mp3",
-        "diag_mp_wraith_voices_sniper_urgent_02_02_1p.mp3", "diag_mp_wraith_voices_sniper_urgent_02_03_1p.mp3",
-        "diag_mp_wraith_voices_sniper_urgent_03_01_1p.mp3", "diag_mp_wraith_voices_sniper_urgent_03_02_1p.mp3",
-        "diag_mp_wraith_voices_sniper_urgent_03_03_1p.mp3" },
-    tactical = { "diag_mp_wraith_bc_tactical_01_01_1p.mp3", "diag_mp_wraith_bc_tactical_01_02_1p.mp3",
-        "diag_mp_wraith_bc_tactical_01_03_1p.mp3", "diag_mp_wraith_bc_tactical_02_01_1p.mp3",
-        "diag_mp_wraith_bc_tactical_02_02_1p.mp3", "diag_mp_wraith_bc_tactical_02_03_1p.mp3",
-        "diag_mp_wraith_bc_tactical_03_01_1p.mp3", "diag_mp_wraith_bc_tactical_03_02_1p.mp3",
-        "diag_mp_wraith_bc_tactical_03_03_1p.mp3", "diag_mp_wraith_bc_tactical_04_01_1p.mp3",
-        "diag_mp_wraith_bc_tactical_04_02_1p.mp3", "diag_mp_wraith_bc_tactical_04_03_1p.mp3" },
-    vehicle = { "diag_mp_wraith_voices_hostiles_urgent_01_01_1p.mp3",
-        "diag_mp_wraith_voices_hostiles_urgent_01_02_1p.mp3",
-        "diag_mp_wraith_voices_hostiles_urgent_01_03_1p.mp3",
-        "diag_mp_wraith_voices_hostiles_urgent_02_01_1p.mp3",
-        "diag_mp_wraith_voices_hostiles_urgent_02_02_1p.mp3",
-        "diag_mp_wraith_voices_hostiles_urgent_03_01_1p.mp3",
-        "diag_mp_wraith_voices_hostiles_urgent_03_02_1p.mp3",
-        "diag_mp_wraith_voices_hostiles_urgent_03_03_1p.mp3",
-        "diag_mp_wraith_voices_hostiles_urgent_04_01_1p.mp3",
-        "diag_mp_wraith_voices_hostiles_urgent_04_02_1p.mp3",
-        "diag_mp_wraith_voices_hostiles_urgent_04_03_1p.mp3",
-        "diag_mp_wraith_voices_hostiles_urgent_05_01_1p.mp3",
-        "diag_mp_wraith_voices_hostiles_urgent_05_02_1p.mp3" }
-}
 
 local cfg = inicfg.load({
     options = {
         welcomeMessage = true,
         language = defaultLanguage,
-    },
-    audio = {
-        language = defaultLanguage,
-        enable = true,
-        volume = 5,
-        quietOffset = 5,
-        noRadio = false,
-        ignoreMissing = false
-    },
-    tactical = {
-        enable = false,
-        alt = true,
-        instant = false,
-        key = 0x51,
-        cooldown = 15
     },
     passive = {
         enable = true,
@@ -1047,26 +796,11 @@ local tempThreads = {}
 
 local wraith_passive_lastaimed = 0
 
-local wraith_tactical_active = false
-local wraith_tactical_lastused = 0
-local wraith_tactical_weather = 478
-local wraith_tactical_hour = 14
-
 local requestToUnload = false
 
 -- the aspect ratio snippet is being worked on here:  https://www.blast.hk/threads/198256/ https://github.com/qrlk/wraith-xiaomi
 
 -- trying to ulitize aspectRatio property from aimSync
-
-local mainSoundStream = false
-local reserveSoundStream = false
-
-local CURRENT_RANDOM_SOUND = ""
-
-local radio_were_disabled = false
-
-local phasingSoundPath = getWorkingDirectory() .. "\\resource\\wraith\\tactical.mp3"
-local phasingInstantSoundPath = getWorkingDirectory() .. "\\resource\\wraith\\tactical_instant.mp3"
 
 function main()
     if not isCleoLoaded() then
@@ -1101,25 +835,8 @@ function main()
 
     -- sc23
 
-    mainSoundStream = loadAudioStream()
-    reserveSoundStream = loadAudioStream()
-
-    if getVolume().radio == 0 then
-        radio_were_disabled = true
-    end
-
     sampRegisterChatCommand('wraith', function()
-        table.insert(tempThreads, lua_thread.create(function()
-            if cfg.audio.enable and cfg.options.welcomeMessage then
-                if not checkAudioResources() then
-                    sampAddChatMessage(getMessage('pleaseDownloadResources'), -1)
-                end
-                if getVolume().radio == 0 and cfg.audio.volume ~= 0 then
-                    sampAddChatMessage(getMessage('radioDisabledWarning'), 0x7ef3fa)
-                end
-            end
-            callMenu()
-        end))
+        table.insert(tempThreads, lua_thread.create(callMenu))
     end)
 
     -- sampProcessChatInput('/wraith')
@@ -1129,29 +846,9 @@ function main()
     end
     if cfg.options.welcomeMessage then
         sampAddChatMessage(getMessage('welcomeMessage'), 0x7ef3fa)
-
-        if cfg.audio.enable then
-            if not checkAudioResources() and cfg.audio.enable then
-                sampAddChatMessage(getMessage('pleaseDownloadResources'), -1)
-            end
-
-            if getVolume().radio == 0 and cfg.audio.volume ~= 0 then
-                sampAddChatMessage(getMessage('radioDisabledWarning'), 0x7ef3fa)
-            end
-        end
-
-        if cfg.tactical.enable then
-            playRandomFromCategory('isReady')
-        end
-    end
-
-    if cfg.audio.noRadio then
-        writeMemory(0x4EB9A0, 3, 1218, true)
     end
 
     preparePassive()
-
-    prepareTactical()
 
     while true do
         wait(0)
@@ -1164,10 +861,6 @@ function main()
         --         debugRenderCharCube(playerPed)
         --     end
         -- end
-
-        if cfg.tactical.enable then
-            processTactical()
-        end
 
         if cfg.passive.enable then
             processPassive()
@@ -1412,33 +1105,21 @@ function triggerPassive(typ, enemyPed)
 
             local dist = math.floor(getDistanceBetweenCoords3d(x, y, z, mX, mY, mZ))
             if typ == "aiming" then
-                if needWarn then
-                    playRandomFromCategory('aiming')
-                end
                 if cfg.passive.printStyledString or (needWarn and cfg.passive.printStyledStringWarn) then
                     printStyledString(string.format("AIMED by %s [%s] (%sm)", nick, id, dist),
                         cfg.passive.reactDuration * 1000, 5)
                 end
             elseif typ == "sniper" then
-                if needWarn then
-                    playRandomFromCategory('sniper')
-                end
                 if cfg.passive.printStyledString or (needWarn and cfg.passive.printStyledStringWarn) then
                     printStyledString(string.format("SNIPER!!! %s [%s] (%sm)", nick, id, dist),
                         cfg.passive.reactDuration * 1000, 5)
                 end
             elseif typ == "vehicle" then
-                if needWarn then
-                    playRandomFromCategory('vehicle')
-                end
                 if cfg.passive.printStyledString or (needWarn and cfg.passive.printStyledStringWarn) then
                     printStyledString(string.format("DANGER!!! %s [%s] (%sm)", nick, id, dist),
                         cfg.passive.reactDuration * 1000, 5)
                 end
             elseif typ == "bullet" then
-                if needWarn then
-                    playRandomFromCategory('vehicle')
-                end
                 if cfg.passive.printStyledStringB or (needWarn and cfg.passive.printStyledStringWarn) then
                     printStyledString(string.format("BULLET!!! %s [%s] (%sm)", nick, id, dist),
                         cfg.passive.reactDuration * 1000, 5)
@@ -1579,258 +1260,6 @@ function getCarModelCornersStable(id, handle)
         [8] = { getOffsetFromCarInWorldCoords(handle, x2 * -1 * cfg.passive.c1, y2 * -1 * cfg.passive.c3, z2 * cfg.passive.c6) },
     }
     return t
-end
-
---tactical
-function prepareTactical()
-    addEventHandler('onSendPacket', function(id, bs)
-        if wraith_tactical_active and id == 207 then
-            if wraith_tactical_active then
-                raknetBitStreamSetReadOffset(bs, 120)
-                local posZ = raknetBitStreamReadFloat(bs)
-
-                local saved_write_offset = raknetBitStreamGetWriteOffset(bs)
-
-                raknetBitStreamSetWriteOffset(bs, 120)
-                raknetBitStreamWriteFloat(bs, posZ - 2.5)
-                raknetBitStreamSetWriteOffset(bs, saved_write_offset)
-
-                printStyledString(getMessage("tacticalUnderZWarning"), 100, 5)
-                return { id, bs } -- возвращаем перезаписанные значения
-            end
-        end
-    end)
-end
-
-function processTactical()
-    if ((isKeyDown(0xA4) or not cfg.tactical.alt) and wasKeyPressed(cfg.tactical.key)) then
-        if not sampIsChatInputActive() and not isSampfuncsConsoleActive() and not sampIsDialogActive() then
-            if isCharOnFoot(playerPed) and not isCharDead(playerPed) then
-                if os.clock() - cfg.tactical.cooldown > wraith_tactical_lastused then
-                    table.insert(tempThreads, lua_thread.create(function()
-                        if cfg.tactical.instant then
-                            if cfg.tactical.key ~= 0x51 or readMemory(getCharPointer(playerPed) + 0x528, 1, false) ==
-                                19 then
-                                wait(200)
-                            else
-                                wait(100)
-                                setGameKeyState(7, 1)
-                                wait(100)
-                            end
-
-                            playReserveSoundNow(phasingInstantSoundPath)
-                            wait(50)
-                            playRandomFromCategory('tactical')
-                        else
-                            playReserveSoundNow(phasingSoundPath)
-                            -- todo fix dry
-
-                            printStyledString(
-                                getMessage('phasingStart1') ..
-                                (key and key.id_to_name(cfg.tactical.key) or tostring(cfg.tactical.key)) ..
-                                getMessage('phasingStart2'), 2000, 5)
-                            if cfg.tactical.key ~= 0x51 or readMemory(getCharPointer(playerPed) + 0x528, 1, false) ==
-                                19 then
-                                wait(200)
-                            else
-                                wait(100)
-                                setGameKeyState(7, 1)
-                                wait(100)
-                            end
-
-                            wait(500)
-                            playRandomFromCategory('tactical')
-                            wait(1500)
-                        end
-                        if not cfg.tactical.instant and isKeyDown(cfg.tactical.key) then
-                            wraith_tactical_active = false
-                            printStyledString(getMessage('phasingCanceled'), 2000, 5)
-                            stopReserveSoundNow()
-                            playRandomFromCategory('no')
-                            wait(2000)
-                        else
-                            local weaponToRestore = getCurrentCharWeapon(playerPed)
-                            local hoursToRestore, minsToRestore = getTimeOfDay()
-                            local weatherToRestore = readMemory(0xC81320, 2, true)
-                            local chatDisplayModeToRestore = sampGetChatDisplayMode()
-
-                            setCurrentCharWeapon(playerPed, 0)
-                            setTimeOfDay(wraith_tactical_hour, 0)
-                            forceWeatherNow(wraith_tactical_weather)
-
-                            wraith_tactical_active = true
-                            displayHud(false)
-                            sampSetChatDisplayMode(0)
-
-                            table.insert(tempThreads, lua_thread.create(function()
-                                while wraith_tactical_active and not isCharDead(playerPed) do
-                                    wait(0)
-                                    setTimeOfDay(wraith_tactical_hour, 0)
-                                    if isCharDead(playerPed) then
-                                        wraith_tactical_active = false
-                                    end
-                                end
-                                forceWeatherNow(weatherToRestore)
-                                setTimeOfDay(hoursToRestore, minsToRestore)
-
-                                displayHud(true)
-                                sampSetChatDisplayMode(chatDisplayModeToRestore)
-                            end))
-
-                            while wraith_tactical_active and not isCharDead(playerPed) do
-                                wait(0)
-                                setGameKeyState(5, 0)
-                                setGameKeyState(6, 0)
-                                setGameKeyState(7, 0)
-                                setGameKeyState(14, 0)
-                                setGameKeyState(15, 0)
-                                setGameKeyState(17, 0)
-                            end
-
-                            if hasCharGotWeapon(playerPed, weaponToRestore) then
-                                setCurrentCharWeapon(playerPed, weaponToRestore)
-                            end
-                        end
-                    end))
-
-                    -- blocking passive because we are underground
-                    local start_wait = os.clock()
-                    wait(4000)
-                    while os.clock() - start_wait < (cfg.tactical.instant and 4.5 or 6.5) do
-                        wait(0)
-                        if wraith_tactical_active then
-                            wait(100)
-                        else
-                            break
-                        end
-                    end
-
-                    if wraith_tactical_active then
-                        wraith_tactical_active = false
-                        wraith_tactical_lastused = os.clock()
-                    end
-                else
-                    -- cooldown voiceline
-                    playRandomFromCategory('notReady')
-                    local left = math.floor(cfg.tactical.cooldown - (os.clock() - wraith_tactical_lastused))
-                    printStringNow(string.format('%sc', left), 3000)
-                end
-            end
-        end
-    end
-end
-
--- audio
-
-function getRandomSoundName()
-    local temp = {}
-    for k, v in pairs(audioLines) do
-        for kk, vv in pairs(v) do
-            table.insert(temp, vv)
-        end
-    end
-    local random = temp[math.random(#temp)]
-    temp = nil
-    return random
-end
-
-CURRENT_RANDOM_SOUND = getRandomSoundName()
-
-function playMainSoundNow(path)
-    if cfg.audio.enable and cfg.audio.volume ~= 0 then
-        stopMainSoundNow()
-        if doesFileExist(path) then
-            mainSoundStream = loadAudioStream(path)
-            if cfg.audio.volume ~= 0 and string.find(path, "wraith_voices") then
-                setAudioStreamVolume(mainSoundStream, cfg.audio.volume + cfg.audio.quietOffset)
-            else
-                setAudioStreamVolume(mainSoundStream, cfg.audio.volume)
-            end
-
-            setAudioStreamState(mainSoundStream, as_action.PLAY)
-        else
-            if not cfg.audio.ignoreMissing then
-                sampAddChatMessage(getMessage('cantFindResources') .. path, -1)
-                sampAddChatMessage(getMessage('pleaseDownloadResources'), -1)
-            end
-        end
-    end
-end
-
-function stopMainSoundNow()
-    if mainSoundStream then
-        setAudioStreamState(mainSoundStream, as_action.STOP)
-    end
-end
-
--- todo fix dry
-function playReserveSoundNow(path)
-    if cfg.audio.enable and cfg.audio.volume ~= 0 then
-        stopReserveSoundNow()
-        if doesFileExist(path) then
-            reserveSoundStream = loadAudioStream(path)
-            if cfg.audio.volume ~= 0 and
-                (string.find(path, "wraith_voices") or string.find(path, "tactical.mp3") or
-                    string.find(path, "tactical_instant.mp3")) then
-                setAudioStreamVolume(reserveSoundStream, cfg.audio.volume + cfg.audio.quietOffset)
-            else
-                setAudioStreamVolume(reserveSoundStream, cfg.audio.volume)
-            end
-
-            setAudioStreamState(reserveSoundStream, as_action.PLAY)
-        else
-            if not cfg.audio.ignoreMissing then
-                sampAddChatMessage(getMessage('cantFindResources') .. path, -1)
-                sampAddChatMessage(getMessage('pleaseDownloadResources'), -1)
-            end
-        end
-    end
-end
-
-function stopReserveSoundNow()
-    if reserveSoundStream then
-        setAudioStreamState(reserveSoundStream, as_action.STOP)
-    end
-end
-
-function playRandomFromCategory(category)
-    local tempSoundPath = getWorkingDirectory() .. "\\resource\\wraith\\" .. cfg.audio.language .. "\\" ..
-        audioLines[category][math.random(#audioLines[category])]
-
-    playMainSoundNow(tempSoundPath)
-end
-
-function playTestSound()
-    local tempSoundPath = getWorkingDirectory() .. "\\resource\\wraith\\" .. cfg.audio.language .. "\\" ..
-        CURRENT_RANDOM_SOUND
-    playMainSoundNow(tempSoundPath)
-end
-
-function getVolume()
-    return {
-        radio = 100 / 64 * readMemory(0xBA6798, 1, true),
-        SFX = 100 / 64 * readMemory(0xBA6797, 1, true)
-    }
-end
-
-function checkAudioResources()
-    local temp = {
-        getWorkingDirectory() .. "\\resource\\wraith\\tactical_instant.mp3",
-        getWorkingDirectory() .. "\\resource\\wraith\\tactical.mp3"
-    }
-    for k, v in pairs(audioLines) do
-        for kk, vv in pairs(v) do
-            table.insert(temp, getWorkingDirectory() .. "\\resource\\wraith\\" .. cfg.audio.language .. "\\" .. vv)
-        end
-    end
-    local foundIssue = false
-    for k, v in pairs(temp) do
-        if not doesFileExist(v) then
-            temp = nil
-            return false
-        end
-    end
-    return true
 end
 
 function drawDebugLine(ax, ay, az, bx, by, bz, color1, color2, color3)
@@ -2156,15 +1585,6 @@ function openMenu(pos)
             table.insert(mod, v)
         end
     end
-
-    local function getLastNCharacters(str, n)
-        if n >= 0 and n <= #str then
-            return string.sub(str, -n)
-        else
-            return str
-        end
-    end
-
 
     local function createLinkRow(title, link)
         return {
@@ -2594,125 +2014,15 @@ function openMenu(pos)
             createLinkRow(getMessage("openWraithTacticalThread"), "https://www.blast.hk/threads//")
         }
     end
-    --audio section
-    local function genSectionAudio()
-        return {
-            (function()
-                local basecolor = "{AAAAAA}"
-                local str = basecolor .. getMessage("sectionAudio")
-                if getVolume().radio == 0 then
-                    str = str .. " || {ff0000}" .. getMessage('checkAudioOff') .. basecolor
-                else
-                    if radio_were_disabled then
-                        str = str .. " || {ff0000}" .. getMessage('checkAudioOffNeedReboot') .. basecolor
-                    end
-                    str = str .. " || {00ff00}" .. getMessage("checkAudioOn") .. basecolor
-                end
-                if checkAudioResources() then
-                    str = str .. " || {00ff00}" .. getMessage("checkResourcesYes") .. basecolor
-                else
-                    str = str .. " || {ff0000}" .. getMessage("checkResourcesNo") .. basecolor
-                end
 
-                return {
-                    title = str
-                }
-            end)(),
-
-            createSimpleToggle("audio", "enable", getMessage("settingAudioEnable"), cfg.audio.enable,
-                function(value, menu, pos)
-                    callMenu(pos - 1)
-                    return false
-                end),
-            createSimpleToggle("audio", "ignoreMissing", getMessage('settingIgnoreMissing'), not cfg.audio.enable),
-
-            (function()
-                local langId = 1
-                for k, v in pairs(audioLanguages) do
-                    if v == cfg.audio.language then
-                        langId = k
-                    end
-                end
-                local submenu = {}
-
-                for k, v in pairs(audioLanguages) do
-                    table.insert(submenu, {
-                        title = i18n.audioLangTable[cfg.options.language][k],
-                        onclick = function(menu, row)
-                            cfg.audio.language = audioLanguages[row]
-                            playTestSound()
-                            saveCfg()
-                            callMenu(20)
-                            return false
-                        end
-                    })
-                end
-
-                return {
-                    title = (not cfg.audio.enable and "{696969}" or "") ..
-                        getMessage("lang") .. i18n.audioLangTable[cfg.options.language][langId],
-                    submenu =
-                        submenu
-                }
-            end)(),
-
-            createSimpleSlider("audio", "volume",
-                (not cfg.audio.enable and "{696969}" or "") .. getMessage('settingVolume'),
-                getMessage("settingVolumeCaption"), "OK", 0, 100,
-                1, function(v)
-                    playTestSound()
-                    saveCfg()
-                end),
-
-            createSimpleSlider("audio", "quietOffset",
-                (not cfg.audio.enable and "{696969}" or "") .. getMessage('settingVolumeQuietOffset'),
-                getMessage("settingVolumeQuietOffsetCaption"), "OK", 0, 100,
-                1, function(v)
-                    stopMainSoundNow()
-                    stopReserveSoundNow()
-                    if math.random(1, 10) % 2 == 0 then
-                        playRandomFromCategory('aiming')
-                    else
-                        -- fix
-                        playReserveSoundNow(getWorkingDirectory() .. "\\resource\\wraith\\tactical_instant.mp3")
-                    end
-                    saveCfg()
-                end),
-
-            {
-                title = (not cfg.audio.enable and "{696969}" or "") ..
-                    getMessage('randomSound') .. getLastNCharacters(CURRENT_RANDOM_SOUND, 30),
-                onclick = function(menu, row)
-                    CURRENT_RANDOM_SOUND = getRandomSoundName()
-                    playTestSound()
-                    menu[row].title = getMessage('randomSound') .. getLastNCharacters(CURRENT_RANDOM_SOUND, 31)
-                    return true
-                end
-            },
-
-            {
-                title = (not cfg.audio.enable and "{696969}" or "") .. "PLAY",
-                onclick = function(menu, row)
-                    playTestSound()
-                    return true
-                end
-            }
-        }
-    end
     -- settings section
     local function genSectionSettings()
-        return { {
-            title = getMessage("sectionSettings")
-        },
-            createSimpleToggle("options", "welcomeMessage", getMessage('settingWelcomeMessage'), false),
-            createSimpleToggle('audio', 'noRadio', getMessage('settingNoRadio'), false, function(value)
-                if value then
-                    writeMemory(0x4EB9A0, 3, 1218, true)
-                else
-                    writeMemory(0x4EB9A0, 3, 15305557, true)
-                end
-                return true
-            end) }
+        return {
+            {
+                title = getMessage("sectionSettings")
+            },
+            createSimpleToggle("options", "welcomeMessage", getMessage('settingWelcomeMessage'), false)
+        }
     end
 
     local function genSectionMisc()
@@ -2747,9 +2057,6 @@ function openMenu(pos)
     mergeMenu(mod_submenus_sa, { createEmptyLine() })
 
     mergeMenu(mod_submenus_sa, genSectionTactical())
-    mergeMenu(mod_submenus_sa, { createEmptyLine() })
-
-    mergeMenu(mod_submenus_sa, genSectionAudio())
     mergeMenu(mod_submenus_sa, { createEmptyLine() })
 
     mergeMenu(mod_submenus_sa, genSectionSettings())
