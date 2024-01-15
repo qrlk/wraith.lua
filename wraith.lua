@@ -19,6 +19,9 @@ local aimline = {}
 do
     aimline._VERSION = "0.0.1"
 
+    -- the aspect ratio snippet is being worked on here:  https://www.blast.hk/threads/198256/ https://github.com/qrlk/wraith-xiaomi
+
+    -- trying to ulitize aspectRatio property from aimSync
     aimline.aspectRatios = {
         [63] = "5:4",    -- 1,25
         [85] = "4:3",    -- 1,333333333333333
@@ -339,6 +342,159 @@ do
     aimline.addEventHandler = function(func)
         table.insert(aimline.handlers, func)
     end
+
+    local Line = {}
+    Line.__index = Line
+
+    function Line.new(p1, p2)
+        local self = setmetatable({}, Line)
+        self.p1 = p1
+        self.p2 = p2
+        self.dx = p2[1] - p1[1]
+        self.dy = p2[2] - p1[2]
+        self.dz = p2[3] - p1[3]
+        self.magnitude = math.sqrt(self.dx * self.dx + self.dy * self.dy + self.dz * self.dz)
+        self.nx = self.dx / self.magnitude
+        self.ny = self.dy / self.magnitude
+        self.nz = self.dz / self.magnitude
+        return self
+    end
+
+    function Line:getPointAtDistance(distance)
+        local dx = self.nx * distance
+        local dy = self.ny * distance
+        local dz = self.nz * distance
+        return { self.p1[1] + dx, self.p1[2] + dy, self.p1[3] + dz }
+    end
+
+    function Line:isPointInsidePolygon(x, y, polygon)
+        local n = #polygon
+        local j = n
+        local inside = false
+        for i = 1, n do
+            local pi = polygon[i]
+            local pj = polygon[j]
+            if ((pi.y > y) ~= (pj.y > y)) and (x < (pj.x - pi.x) * (y - pi.y) / (pj.y - pi.y) + pi.x) then
+                inside = not inside
+            end
+            j = i
+        end
+        return inside
+    end
+
+    function Line:isPointInsideRectangularCuboid(point, corners, polygon)
+        if point[3] < corners[1][3] or point[3] > corners[5][3] then
+            return false
+        else
+            return self:isPointInsidePolygon(point[1], point[2], polygon)
+        end
+    end
+
+    function Line:test(corners)
+        -- Calculate the number of points to check
+        local numPoints = math.ceil(self.magnitude / 0.1)
+        -- Polygon to compare in 2d
+        local polygon = { { x = corners[1][1], y = corners[1][2] }, { x = corners[2][1], y = corners[2][2] }, { x = corners[3][1], y = corners[3][2] }, { x = corners[4][1], y = corners[4][2] } }
+
+        -- Iterate over the points
+        for i = 0, numPoints do
+            -- Get the point at the current distance along the line
+            local d = i * 0.1
+            if d < self.magnitude then
+                local point = self:getPointAtDistance(d)
+                local _3, x3, y3, z3 = convert3DCoordsToScreenEx(point[1], point[2], point[3])
+
+                -- Check if the point is inside the cube
+                local res = self:isPointInsideRectangularCuboid(point, corners, polygon)
+                if _3 and z3 > 0 then
+                    renderDrawPolygon(x3, y3, 10, 10, 10, 0.0, res and 0xff00ffff or 0xffFF00FF)
+                end
+            end
+        end
+        -- No point was found inside the cube
+        return false
+    end
+
+    function Line:getLastPointOnScreen()
+        -- Calculate the number of points to check
+
+        local numPoints = math.ceil(self.magnitude / 0.1)
+        local lastPoint = false
+        -- Iterate over the points
+        for i = 0, numPoints do
+            -- Get the point at the current distance along the line
+            local d = i * 0.1
+            if d < self.magnitude then
+                local point = self:getPointAtDistance(d)
+
+                if isPointOnScreen(point[1], point[2], point[3], 0.1) then
+                    lastPoint = point
+                else
+                    return lastPoint
+                end
+            end
+        end
+
+        -- No point was found inside the cube
+        return false
+    end
+
+    function Line:getEdgesOnScreen(coof)
+        -- Calculate the number of points to check
+
+        local numPoints = math.ceil(self.magnitude / coof)
+        local firstPoint = false
+        local lastPoint = false
+        -- Iterate over the points
+        for i = 0, numPoints do
+            -- Get the point at the current distance along the line
+            local d = i * coof
+            if d < self.magnitude then
+                local point = self:getPointAtDistance(d)
+
+                if isPointOnScreen(point[1], point[2], point[3], 0.1) then
+                    if not firstPoint then
+                        firstPoint = point
+                    else
+                        lastPoint = point
+                    end
+                end
+            end
+        end
+
+        if firstPoint and lastPoint then
+            return firstPoint, lastPoint
+        end
+
+        -- No point was found inside the cube
+        return false
+    end
+
+    function Line:hasPointInsideRectangularCuboid(corners)
+        -- Calculate the number of points to check
+
+        local numPoints = math.ceil(self.magnitude / 0.1)
+        -- Polygon to compare in 2d
+        local polygon = { { x = corners[1][1], y = corners[1][2] }, { x = corners[2][1], y = corners[2][2] }, { x = corners[3][1], y = corners[3][2] }, { x = corners[4][1], y = corners[4][2] } }
+        -- Iterate over the points
+        for i = 0, numPoints do
+            -- Get the point at the current distance along the line
+            local d = i * 0.1
+            if d < self.magnitude then
+                local point = self:getPointAtDistance(d)
+
+                -- Check if the point is inside the cube
+                if self:isPointInsideRectangularCuboid(point, corners, polygon) then
+                    return true, point
+                end
+            end
+        end
+
+        -- No point was found inside the cube
+        return false
+    end
+
+    aimline.Line = Line
 end
 
 if pcall(debug.getlocal, 4, 1) then
@@ -793,10 +949,6 @@ local wraith_passive_lastaimed = 0
 
 local requestToUnload = false
 
--- the aspect ratio snippet is being worked on here:  https://www.blast.hk/threads/198256/ https://github.com/qrlk/wraith-xiaomi
-
--- trying to ulitize aspectRatio property from aimSync
-
 function main()
     if not isCleoLoaded() then
         printStyledString('wraith.lua: pls install cleo', 10000, 2)
@@ -899,7 +1051,7 @@ function preparePassive()
                 end
             end
             if needToGoDeep then
-                local line = Line.new({ res.aimline.p1x, res.aimline.p1y, res.aimline.p1z }, { res.aimline.p2x,
+                local line = aimline.Line.new({ res.aimline.p1x, res.aimline.p1y, res.aimline.p1z }, { res.aimline.p2x,
                     res.aimline.p2y, res.aimline.p2z })
                 local posX, posY, posZ = getCharCoordinates(playerPed)
                 local d1 = getDistanceBetweenCoords3d(posX, posY, posZ, res.aimline.p1x, res.aimline.p1y, res.aimline
@@ -949,7 +1101,7 @@ function preparePassive()
             if offsetX ~= 0 and offsetY ~= 0 and offsetZ ~= 0 then
                 local d = getDistanceBetweenCoords3d(originX, originY, originZ, hitX, hitY, hitZ)
                 if d > 1 and d < 1000 then
-                    local line = Line.new({ originX, originY, originZ }, { hitX, hitY, hitZ })
+                    local line = aimline.Line.new({ originX, originY, originZ }, { hitX, hitY, hitZ })
 
                     local p = line:getPointAtDistance(0.1)
                     local result, colPoint = processLineOfSight(originX, originY, originZ, p[1], p[2], p[3], true,
@@ -1266,7 +1418,7 @@ function drawDebugLine(ax, ay, az, bx, by, bz, color1, color2, color3)
             renderDrawLine(x1, y1, x2, y2, 2, color2)
             renderDrawPolygon(x2, y2, 10, 10, 10, 0.0, color3)
         elseif cfg.passive.smartTracer then
-            local line = Line.new({ ax, ay, az }, { bx, by, bz })
+            local line = aimline.Line.new({ ax, ay, az }, { bx, by, bz })
             local lastPointOnScreen = line:getLastPointOnScreen()
             if lastPointOnScreen then
                 renderDrawPolygon(x1, y1, 10, 10, 10, 0.0, color1)
@@ -1344,157 +1496,6 @@ function debugRenderCarCube(car, func, color)
         renderDrawLine(r[3][1], r[3][2], r[7][1], r[7][2], 2, color)
         renderDrawLine(r[4][1], r[4][2], r[8][1], r[8][2], 2, color)
     end
-end
-
-Line = {}
-Line.__index = Line
-
-function Line.new(p1, p2)
-    local self = setmetatable({}, Line)
-    self.p1 = p1
-    self.p2 = p2
-    self.dx = p2[1] - p1[1]
-    self.dy = p2[2] - p1[2]
-    self.dz = p2[3] - p1[3]
-    self.magnitude = math.sqrt(self.dx * self.dx + self.dy * self.dy + self.dz * self.dz)
-    self.nx = self.dx / self.magnitude
-    self.ny = self.dy / self.magnitude
-    self.nz = self.dz / self.magnitude
-    return self
-end
-
-function Line:getPointAtDistance(distance)
-    local dx = self.nx * distance
-    local dy = self.ny * distance
-    local dz = self.nz * distance
-    return { self.p1[1] + dx, self.p1[2] + dy, self.p1[3] + dz }
-end
-
-function Line:isPointInsidePolygon(x, y, polygon)
-    local n = #polygon
-    local j = n
-    local inside = false
-    for i = 1, n do
-        local pi = polygon[i]
-        local pj = polygon[j]
-        if ((pi.y > y) ~= (pj.y > y)) and (x < (pj.x - pi.x) * (y - pi.y) / (pj.y - pi.y) + pi.x) then
-            inside = not inside
-        end
-        j = i
-    end
-    return inside
-end
-
-function Line:isPointInsideRectangularCuboid(point, corners, polygon)
-    if point[3] < corners[1][3] or point[3] > corners[5][3] then
-        return false
-    else
-        return self:isPointInsidePolygon(point[1], point[2], polygon)
-    end
-end
-
-function Line:test(corners)
-    -- Calculate the number of points to check
-    local numPoints = math.ceil(self.magnitude / 0.1)
-    -- Polygon to compare in 2d
-    local polygon = { { x = corners[1][1], y = corners[1][2] }, { x = corners[2][1], y = corners[2][2] }, { x = corners[3][1], y = corners[3][2] }, { x = corners[4][1], y = corners[4][2] } }
-
-    -- Iterate over the points
-    for i = 0, numPoints do
-        -- Get the point at the current distance along the line
-        local d = i * 0.1
-        if d < self.magnitude then
-            local point = self:getPointAtDistance(d)
-            local _3, x3, y3, z3 = convert3DCoordsToScreenEx(point[1], point[2], point[3])
-
-            -- Check if the point is inside the cube
-            local res = self:isPointInsideRectangularCuboid(point, corners, polygon)
-            if _3 and z3 > 0 then
-                renderDrawPolygon(x3, y3, 10, 10, 10, 0.0, res and 0xff00ffff or 0xffFF00FF)
-            end
-        end
-    end
-    -- No point was found inside the cube
-    return false
-end
-
-function Line:getLastPointOnScreen()
-    -- Calculate the number of points to check
-
-    local numPoints = math.ceil(self.magnitude / 0.1)
-    local lastPoint = false
-    -- Iterate over the points
-    for i = 0, numPoints do
-        -- Get the point at the current distance along the line
-        local d = i * 0.1
-        if d < self.magnitude then
-            local point = self:getPointAtDistance(d)
-
-            if isPointOnScreen(point[1], point[2], point[3], 0.1) then
-                lastPoint = point
-            else
-                return lastPoint
-            end
-        end
-    end
-
-    -- No point was found inside the cube
-    return false
-end
-
-function Line:getEdgesOnScreen(coof)
-    -- Calculate the number of points to check
-
-    local numPoints = math.ceil(self.magnitude / coof)
-    local firstPoint = false
-    local lastPoint = false
-    -- Iterate over the points
-    for i = 0, numPoints do
-        -- Get the point at the current distance along the line
-        local d = i * coof
-        if d < self.magnitude then
-            local point = self:getPointAtDistance(d)
-
-            if isPointOnScreen(point[1], point[2], point[3], 0.1) then
-                if not firstPoint then
-                    firstPoint = point
-                else
-                    lastPoint = point
-                end
-            end
-        end
-    end
-
-    if firstPoint and lastPoint then
-        return firstPoint, lastPoint
-    end
-
-    -- No point was found inside the cube
-    return false
-end
-
-function Line:hasPointInsideRectangularCuboid(corners)
-    -- Calculate the number of points to check
-
-    local numPoints = math.ceil(self.magnitude / 0.1)
-    -- Polygon to compare in 2d
-    local polygon = { { x = corners[1][1], y = corners[1][2] }, { x = corners[2][1], y = corners[2][2] }, { x = corners[3][1], y = corners[3][2] }, { x = corners[4][1], y = corners[4][2] } }
-    -- Iterate over the points
-    for i = 0, numPoints do
-        -- Get the point at the current distance along the line
-        local d = i * 0.1
-        if d < self.magnitude then
-            local point = self:getPointAtDistance(d)
-
-            -- Check if the point is inside the cube
-            if self:isPointInsideRectangularCuboid(point, corners, polygon) then
-                return true, point
-            end
-        end
-    end
-
-    -- No point was found inside the cube
-    return false
 end
 
 --------------------------------------------------------------------------------
