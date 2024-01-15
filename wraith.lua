@@ -1981,8 +1981,7 @@ function openMenu(pos)
                         function()
                             if isCharInAnyCar(PLAYER_PED) then
                                 debugRenderCarCube(storeCarCharIsInNoSave(playerPed), getCarModelCorners, "0xFFffff4d")
-                                debugRenderCarCube(storeCarCharIsInNoSave(playerPed), getCarModelCornersStable,
-                                    "0xFFff004d")
+                                --debugRenderCarCube(storeCarCharIsInNoSave(playerPed), getCarModelCornersStable, "0xFFff004d")
                             end
                         end, nil, function()
                             saveCfg()
