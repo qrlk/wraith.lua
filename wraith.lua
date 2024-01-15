@@ -826,7 +826,7 @@ function main()
 
     if getMoonloaderVersion() < 26 then
         sampAddChatMessage(getMessage('pleaseUpdateMoonloader'), -1)
-        local str = "wraith.lua: you should update moonloader, normal work is not guaranteed"
+        -- local str = "wraith.lua: you should update moonloader, normal work is not guaranteed"
         -- printStyledString(str, 10000, 2)
         -- printStyledString(str, 10000, 5)
         -- thisScript():unload()
